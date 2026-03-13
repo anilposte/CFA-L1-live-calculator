@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFA L1 — Concept Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1a2e;
+  --paper: #f5f0e8;
+  --paper2: #ede8dc;
+  --paper3: #e4ddd0;
+  --accent: #c8401a;
+  --accent2: #2d6a9f;
+  --accent3: #2a7a4f;
+  --gold: #b8860b;
+  --text: #2c2c3e;
+  --muted: #7a7890;
+  --border: #d4cfc4;
+  --warn: #c8401a;
+  --good: #2a7a4f;
+  --shadow: rgba(26,26,46,0.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--paper);
+  color: var(--text);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Textured paper background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 28px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 10;
+  border-bottom: 3px solid var(--accent);
+}
+.header-left h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+.header-left h1 em {
+  font-style: italic;
+  color: #d4a96a;
+}
+.header-left p {
+  font-size: 0.78rem;
+  color: #8a8aa8;
+  margin-top: 5px;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+}
+.header-right {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.nav-pill {
+  padding: 6px 14px;
+  border-radius: 2px;
+  border: 1px solid #3a3a5a;
+  background: transparent;
+  color: #8a8aa8;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.nav-pill:hover { border-color: #8a8aa8; color: var(--paper); }
+.nav-pill.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+/* ── LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  min-height: calc(100vh - 100px);
+  position: relative;
+  z-index: 1;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--paper2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 0;
+}
+.sidebar-section {
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-section-title {
+  padding: 12px 20px 8px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
+  background: var(--paper3);
+}
+.formula-card {
+  padding: 14px 20px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  position: relative;
+}
+.formula-card:hover { background: var(--paper3); }
+.formula-card.active {
+  background: white;
+  border-left-color: var(--accent);
+  box-shadow: 2px 0 8px var(--shadow);
+}
+.formula-card .fc-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+.formula-card .fc-tagline {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 3px;
+  font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.85rem;
+}
+.formula-card .fc-dot {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent3);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.formula-card.visited .fc-dot { opacity: 1; }
+
+/* ── MAIN CONTENT ── */
+.main {
+  overflow-y: auto;
+  background: white;
+}
+.concept-panel { display: none; padding: 0; }
+.concept-panel.active { display: block; }
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 500px;
+  text-align: center;
+  padding: 40px;
+}
+.empty-state .es-icon {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 5rem;
+  color: var(--border);
+  line-height: 1;
+  margin-bottom: 16px;
+}
+.empty-state h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  color: var(--muted);
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+.empty-state p { font-size: 0.85rem; color: var(--muted); max-width: 320px; line-height: 1.6; }
+
+/* ── CONCEPT PANEL SECTIONS ── */
+.cp-hero {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 40px 52px 36px;
+  position: relative;
+  overflow: hidden;
+}
+.cp-hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--gold), var(--accent2));
+}
+.cp-hero .subject-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid #3a3a5a;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #8a8aaa;
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+.cp-hero h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+.cp-hero .big-idea {
+  font-size: 1.08rem;
+  line-height: 1.7;
+  color: #c8cce8;
+  max-width: 680px;
+  font-weight: 300;
+}
+.cp-hero .big-idea strong { color: #e8c87a; font-weight: 500; }
+
+/* Formula reveal */
+.formula-reveal {
+  background: var(--paper2);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  margin: 32px 52px;
+  padding: 28px 32px;
+  position: relative;
+}
+.formula-reveal .fr-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+.formula-reveal .fr-equation {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.4rem;
+  color: var(--ink);
+  font-weight: 400;
+  line-height: 1.8;
+}
+.formula-reveal .fr-equation .hi { color: var(--accent); font-weight: 500; }
+.formula-reveal .fr-equation .hi2 { color: var(--accent2); font-weight: 500; }
+.formula-reveal .fr-equation .hi3 { color: var(--accent3); font-weight: 500; }
+.formula-reveal .fr-vars {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fr-var-pill {
+  padding: 4px 12px;
+  background: white;
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text);
+  border-radius: 2px;
+}
+.fr-var-pill span {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+/* Content body */
+.cp-body { padding: 0 52px 52px; }
+
+/* Section blocks */
+.concept-block {
+  margin-bottom: 36px;
+}
+.concept-block h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.concept-block h3 .section-icon { font-size: 1rem; }
+.concept-block p {
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: #3a3a52;
+}
+.concept-block p strong { color: var(--ink); font-weight: 600; }
+.concept-block p em { color: var(--accent2); font-style: italic; }
+
+/* Pull quote */
+.pull-quote {
+  border-left: 3px solid var(--gold);
+  padding: 12px 20px;
+  background: #fdf8ee;
+  margin: 16px 0;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+/* ── INTERACTIVE LAB ── */
+.lab-section {
+  background: var(--paper2);
+  border: 1px solid var(--border);
+  padding: 28px 32px;
+  margin-bottom: 28px;
+}
+.lab-section .lab-title {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.lab-section .lab-subtitle {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--ink);
+}
+
+/* Sliders */
+.sliders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.slider-group { display: flex; flex-direction: column; gap: 6px; }
+.slider-group .sg-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.slider-group .sg-sym {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.slider-group input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.slider-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid white;
+  box-shadow: 0 1px 4px var(--shadow);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.slider-group input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.slider-group .sg-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-align: right;
+  font-weight: 500;
+}
+.slider-group input[type="number"] {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  background: white;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--ink);
+  outline: none;
+  border-radius: 2px;
+  transition: border 0.2s;
+}
+.slider-group input[type="number"]:focus { border-color: var(--accent2); }
+
+/* Result card */
+.result-card {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 20px 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.result-card .rc-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #8a8aaa;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.result-card .rc-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.8rem;
+  font-weight: 400;
+  color: #d4a96a;
+  line-height: 1;
+}
+.result-card .rc-breakdown {
+  flex: 1;
+  font-size: 0.78rem;
+  line-height: 1.8;
+  color: #a0a0c0;
+  font-family: 'JetBrains Mono', monospace;
+  border-left: 1px solid #3a3a5a;
+  padding-left: 20px;
+}
+.result-card .rc-breakdown strong { color: #d4d4f0; }
+
+/* Live insight — the KEY feature */
+.live-insight {
+  background: #fffdf5;
+  border: 1px solid #e8d8a0;
+  border-left: 3px solid var(--gold);
+  padding: 14px 18px;
+  font-size: 0.86rem;
+  line-height: 1.7;
+  color: #3a3a28;
+  min-height: 60px;
+  transition: all 0.3s;
+}
+.live-insight .li-prefix {
+  font-weight: 600;
+  color: var(--gold);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 4px;
+}
+.live-insight strong { color: var(--ink); }
+.live-insight em { color: var(--accent); font-style: normal; font-weight: 600; }
+
+/* Exam traps */
+.trap-box {
+  background: #fff5f3;
+  border: 1px solid #f0c0b0;
+  border-left: 3px solid var(--accent);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+}
+.trap-box .trap-header {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.trap-box p { font-size: 0.85rem; line-height: 1.7; color: #3a2828; }
+.trap-box p strong { color: var(--accent); }
+
+/* Reality check boxes */
+.reality-box {
+  background: #f3fff7;
+  border: 1px solid #a8ddb8;
+  border-left: 3px solid var(--accent3);
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: #1a3028;
+}
+.reality-box strong { color: var(--accent3); }
+
+/* Chart */
+.chart-wrap {
+  margin-top: 16px;
+  background: white;
+  border: 1px solid var(--border);
+  padding: 16px;
+}
+.chart-wrap .chart-caption {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 8px;
+  font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+}
+
+/* Connected concepts */
+.connected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.connected-pill {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  background: var(--paper2);
+  font-size: 0.75rem;
+  color: var(--accent2);
+  cursor: pointer;
+  transition: all 0.15s;
+  border-radius: 2px;
+}
+.connected-pill:hover { background: var(--accent2); color: white; border-color: var(--accent2); }
+
+/* Progress */
+.progress-strip {
+  background: var(--paper3);
+  border-top: 1px solid var(--border);
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+.progress-bar-wrap { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: var(--accent3); border-radius: 2px; transition: width 0.5s; }
+
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { max-height: 200px; }
+  .cp-hero, .formula-reveal, .cp-body { padding-left: 20px; padding-right: 20px; }
+  .header { padding: 16px 20px; flex-direction: column; align-items: flex-start; gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>CFA L1 — <em>Concept Lab</em></h1>
+    <p>Understand the idea first. The formula is just the translation.</p>
+  </div>
+  <div class="header-right" id="navPills"></div>
+</div>
+
+<div class="layout">
+  <div class="sidebar" id="sidebar">
+    <!-- filled by JS -->
+    <div class="progress-strip">
+      <span id="progressLabel">0 / 18 concepts visited</span>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div id="emptyState" class="empty-state">
+      <div class="es-icon">∫</div>
+      <h2>Pick a concept to begin</h2>
+      <p>Each formula has a story. Start with CAPM or Bond Pricing — the two most important in the entire exam.</p>
+    </div>
+    <!-- concept panels injected here -->
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// =====================================================================
+// CONCEPT DATA — the heart of the app
+// Each entry has: story, formula, variables explained in plain English,
+// an interactive calculator with LIVE INSIGHT text that updates with sliders,
+// and exam traps.
+// =====================================================================
+
+const CONCEPTS = [
+
+  // ══════════════════════════════════════════════════════════
+  // 1. CAPM
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'capm',
+    subject: 'Portfolio Management',
+    name: 'CAPM',
+    tagline: 'The price of risk in one equation',
+    bigIdea: `Every risky investment needs to earn more than a risk-free investment — otherwise, why bother? CAPM answers the question: <strong>exactly how much more should you demand?</strong> The answer depends on one thing only: how much your investment moves with the overall market. That's beta.`,
+    formula: `E(R) = <span class="hi">Rf</span> + <span class="hi2">β</span> × (<span class="hi3">Rm</span> − <span class="hi">Rf</span>)`,
+    vars: [
+      { sym: 'E(R)', def: 'What you should expect to earn from this investment' },
+      { sym: 'Rf', def: 'The risk-free rate — what you earn doing nothing risky (T-bills)' },
+      { sym: 'β', def: 'How much this asset moves relative to the market (1 = same, 2 = twice as much)' },
+      { sym: 'Rm − Rf', def: 'The equity risk premium — the market\'s reward for taking on market risk' },
+    ],
+    intuition: `Think of CAPM as a <strong>job interview for risk-taking</strong>. The market pays you a base salary (Rf) just for showing up. Then it pays a bonus proportional to how much risk you took on (β × ERP). If you took on twice the market risk, you get twice the risk premium. That's the deal.`,
+    pullQuote: `"Beta measures systematic risk — the kind you can't escape by diversifying. CAPM says only this irreducible risk gets rewarded."`,
+    connected: ['sharpe', 'jensens', 'port-var'],
+    inputs: [
+      { id: 'capm_rf', label: 'Risk-Free Rate', sym: 'Rf', type: 'range', min: 0, max: 10, step: 0.25, val: 3, unit: '%' },
+      { id: 'capm_rm', label: 'Market Return', sym: 'Rm', type: 'range', min: 2, max: 20, step: 0.25, val: 10, unit: '%' },
+      { id: 'capm_beta', label: 'Beta', sym: 'β', type: 'range', min: -0.5, max: 3, step: 0.1, val: 1.2, unit: '' },
+    ],
+    calc(v) {
+      const erp = v.capm_rm - v.capm_rf;
+      const er = v.capm_rf + v.capm_beta * erp;
+      const breakdown = `Rf (${v.capm_rf}%) + β (${v.capm_beta}) × ERP (${erp.toFixed(2)}%) = <strong>${er.toFixed(2)}%</strong>`;
+      let insight = '';
+      if (v.capm_beta < 0) insight = `A <em>negative beta</em> means this asset moves <strong>opposite to the market</strong> — like gold or some hedge strategies. CAPM actually says you should accept a return <strong>below the risk-free rate</strong> because this asset provides insurance when markets fall. That's rare and valuable.`;
+      else if (v.capm_beta < 0.5) insight = `With beta of ${v.capm_beta}, this is a <em>very defensive asset</em> — it barely moves when the market swings. Think utilities or consumer staples. Investors accept <strong>lower expected returns</strong> in exchange for stability.`;
+      else if (v.capm_beta < 0.9) insight = `Beta of ${v.capm_beta} signals a <em>moderately defensive asset</em>. It participates in market upside but cushions against downturns. The required return of <strong>${er.toFixed(2)}%</strong> reflects this reduced risk.`;
+      else if (v.capm_beta < 1.1) insight = `Beta near 1 means this asset moves <em>almost exactly with the market</em>. Required return of <strong>${er.toFixed(2)}%</strong> essentially equals the market return — you're taking market-level risk.`;
+      else if (v.capm_beta < 1.8) insight = `Beta of ${v.capm_beta} means this asset is <em>more volatile than the market</em> — likely a growth stock or cyclical company. Investors demand <strong>${er.toFixed(2)}%</strong>, higher than the market's ${v.capm_rm}%, as compensation for the extra risk.`;
+      else insight = `A beta of ${v.capm_beta} is <em>very high</em> — this asset swings dramatically. A 10% market move would translate to roughly a <strong>${(v.capm_beta * 10).toFixed(0)}% move</strong> in this asset. The required return of <strong>${er.toFixed(2)}%</strong> reflects this extreme systematic risk.`;
+      return { value: `${er.toFixed(2)}%`, label: 'Expected Return', breakdown, insight };
+    },
+    chart(v) {
+      const betas = [-0.5, 0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
+      const ers = betas.map(b => (v.capm_rf + b * (v.capm_rm - v.capm_rf)).toFixed(2));
+      return {
+        labels: betas.map(b => 'β=' + b),
+        datasets: [{ label: 'Security Market Line (SML)', data: ers, borderColor: '#2d6a9f', backgroundColor: 'rgba(45,106,159,0.06)', tension: 0.1, pointRadius: 4, pointBackgroundColor: '#2d6a9f' }],
+        xLabel: 'Beta (β)', yLabel: 'Expected Return (%)', caption: 'The Security Market Line — every asset should plot on this line in equilibrium'
+      };
+    },
+    traps: [
+      { label: 'Overvalued vs Undervalued', text: 'If a stock\'s <strong>actual expected return > CAPM return</strong>, the stock is <strong>undervalued</strong> (it plots above the SML — buy it). If actual < CAPM, it\'s overvalued. Students often get this backwards.' },
+      { label: 'Beta is not total risk', text: 'Beta measures only <strong>systematic (market) risk</strong>. Total risk = systematic + unsystematic. CAPM says only systematic risk gets compensated because unsystematic risk can be diversified away for free.' },
+    ],
+    reality: `In practice, beta is estimated from historical data and changes over time. CAPM is a simplification — real markets have multiple risk factors. But for the CFA exam, CAPM is the foundation of everything in portfolio management.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 2. BOND PRICING
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'bond-price',
+    subject: 'Fixed Income',
+    name: 'Bond Pricing',
+    tagline: 'Why bond prices move opposite to yields',
+    bigIdea: `A bond is just a <strong>promise</strong> — a promise to pay fixed cash flows in the future. The question is: what is that promise worth <em>today</em>? The answer depends entirely on what return rate (yield) you could earn elsewhere. That tension between a fixed promise and a changing market rate is why bond prices move.`,
+    formula: `Price = Σ <span class="hi">C</span> / (1+<span class="hi2">r</span>)^t + <span class="hi3">FV</span> / (1+<span class="hi2">r</span>)^n`,
+    vars: [
+      { sym: 'C', def: 'Coupon payment each period (fixed — set at issuance)' },
+      { sym: 'r', def: 'YTM / 2 for semi-annual: the market\'s current required return' },
+      { sym: 'FV', def: 'Face value — the lump sum paid at maturity (usually $1,000)' },
+      { sym: 'n', def: 'Total number of periods (years × 2 for semi-annual bonds)' },
+    ],
+    intuition: `Imagine you locked in a 6% coupon bond, but now the market demands 8%. <strong>No one will pay full price for your 6% bond</strong> when new bonds yield 8%. So the price drops until the effective return to the new buyer equals 8%. That's the price-yield relationship in action — and it's why bond prices and yields always move in opposite directions.`,
+    pullQuote: `"The bond's coupon never changes. What changes is what the market thinks that fixed stream of cash is worth today."`,
+    connected: ['mod-duration', 'convexity', 'current-yield'],
+    inputs: [
+      { id: 'bp_fv', label: 'Face Value ($)', sym: 'FV', type: 'number', min: 100, max: 10000, step: 100, val: 1000, unit: '$' },
+      { id: 'bp_coupon', label: 'Annual Coupon Rate', sym: 'c%', type: 'range', min: 0, max: 15, step: 0.25, val: 6, unit: '%' },
+      { id: 'bp_ytm', label: 'YTM (Market Rate)', sym: 'r', type: 'range', min: 0.5, max: 20, step: 0.25, val: 8, unit: '%' },
+      { id: 'bp_years', label: 'Years to Maturity', sym: 'n', type: 'range', min: 1, max: 30, step: 1, val: 10, unit: 'yrs' },
+    ],
+    calc(v) {
+      const FV = v.bp_fv, c = v.bp_coupon / 100 / 2, r = v.bp_ytm / 100 / 2, n = v.bp_years * 2;
+      const pv_c = r > 0 ? c * FV * (1 - Math.pow(1 + r, -n)) / r : c * FV * n;
+      const pv_fv = FV / Math.pow(1 + r, n);
+      const price = pv_c + pv_fv;
+      const breakdown = `PV of coupons: <strong>$${pv_c.toFixed(2)}</strong> + PV of face value: <strong>$${pv_fv.toFixed(2)}</strong> = <strong>$${price.toFixed(2)}</strong>`;
+      const diff = ((price - FV) / FV * 100).toFixed(1);
+      let insight = '';
+      if (Math.abs(v.bp_coupon - v.bp_ytm) < 0.1) {
+        insight = `Coupon rate equals YTM — the bond prices at exactly <em>par ($${FV})</em>. This makes intuitive sense: the bond offers exactly what the market demands, so investors pay exactly face value.`;
+      } else if (v.bp_coupon < v.bp_ytm) {
+        insight = `YTM (${v.bp_ytm}%) is <em>higher</em> than the coupon rate (${v.bp_coupon}%). The bond's fixed payments are below what the market now demands — so the price falls to <strong>$${price.toFixed(2)}</strong>, a discount of ${Math.abs(Number(diff))}% below par. The discount compensates the buyer for the below-market coupon.`;
+      } else {
+        insight = `The coupon rate (${v.bp_coupon}%) <em>exceeds</em> YTM (${v.bp_ytm}%). Investors are willing to pay a <strong>premium of ${diff}% above par</strong> ($${price.toFixed(2)}) to lock in above-market coupon payments. They're essentially prepaying for the extra income.`;
+      }
+      return { value: `$${price.toFixed(2)}`, label: 'Bond Price', breakdown, insight };
+    },
+    chart(v) {
+      const FV = v.bp_fv, c = v.bp_coupon / 100 / 2, n = v.bp_years * 2;
+      const yields = [], prices = [];
+      for (let r = 1; r <= 18; r += 0.5) {
+        const ri = r / 100 / 2;
+        const p = ri > 0 ? c * FV * (1 - Math.pow(1 + ri, -n)) / ri + FV / Math.pow(1 + ri, n) : (c * n + 1) * FV;
+        yields.push(r.toFixed(1) + '%');
+        prices.push(p.toFixed(2));
+      }
+      return {
+        labels: yields,
+        datasets: [
+          { label: 'Bond Price', data: prices, borderColor: '#c8401a', backgroundColor: 'rgba(200,64,26,0.06)', tension: 0.4, pointRadius: 2 },
+          { label: 'Par ($1000)', data: Array(yields.length).fill(FV), borderColor: '#aaaaaa', borderDash: [4, 4], pointRadius: 0, borderWidth: 1 }
+        ],
+        xLabel: 'YTM (%)', yLabel: 'Price ($)', caption: 'The price-yield curve — notice it\'s convex (bowed outward), not a straight line'
+      };
+    },
+    traps: [
+      { label: 'The yield hierarchy for premium/discount bonds', text: 'For a <strong>discount bond</strong>: Coupon Rate < Current Yield < YTM. For a <strong>premium bond</strong>: Coupon Rate > Current Yield > YTM. This ordering is frequently tested and easy to mix up.' },
+      { label: 'Semi-annual convention', text: 'US bonds pay semi-annual coupons. Always use <strong>N = years × 2</strong>, <strong>I/Y = YTM/2</strong>, and <strong>PMT = annual coupon / 2</strong> on your calculator. Forgetting this is one of the most common exam errors.' },
+    ],
+    reality: `Bond pricing is the most tested calculation topic in the entire CFA Level 1 exam. Every other fixed income concept (duration, convexity, spread analysis) builds on this foundation.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 3. GORDON GROWTH MODEL
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'ggm',
+    subject: 'Equity Valuation',
+    name: 'Gordon Growth Model',
+    tagline: 'What is a dividend stream worth forever?',
+    bigIdea: `If a company pays dividends that grow at a constant rate forever, you can value it with a single, elegant formula. The GGM says: the stock price is just the <strong>next dividend divided by the gap between your required return and the growth rate</strong>. That gap is everything — shrink it, and prices explode.`,
+    formula: `P₀ = <span class="hi">D₁</span> / (<span class="hi2">r</span> − <span class="hi3">g</span>)`,
+    vars: [
+      { sym: 'P₀', def: 'Intrinsic value of the stock today' },
+      { sym: 'D₁', def: 'Expected dividend one year from now (= D₀ × (1+g))' },
+      { sym: 'r', def: 'Required return on equity — what investors demand' },
+      { sym: 'g', def: 'Constant dividend growth rate forever (the key assumption)' },
+    ],
+    intuition: `Think of a stock as a perpetuity with growing payments. If you required 9% return and dividends grow at 4%, the "effective yield" on your investment is only 9−4=5%. So you'd pay 20× the next dividend (1/5% = 20). If growth rises to 6%, you'd pay 1/3% = 33× the dividend. <strong>Small changes in g have enormous price effects</strong> — this is why growth stocks are so volatile.`,
+    pullQuote: `"The denominator (r − g) is the secret. When it approaches zero, prices approach infinity. That's why mature, stable companies suit this model — and high-growth ones don't."`,
+    connected: ['wacc-ke', 'pe-pb', 'capm'],
+    inputs: [
+      { id: 'ggm_d0', label: 'Current Dividend D₀ ($)', sym: 'D₀', type: 'number', min: 0.1, max: 20, step: 0.25, val: 2, unit: '$' },
+      { id: 'ggm_g', label: 'Dividend Growth Rate', sym: 'g', type: 'range', min: 0, max: 12, step: 0.25, val: 4, unit: '%' },
+      { id: 'ggm_r', label: 'Required Return', sym: 'r', type: 'range', min: 1, max: 20, step: 0.25, val: 9, unit: '%' },
+    ],
+    calc(v) {
+      const D1 = v.ggm_d0 * (1 + v.ggm_g / 100);
+      const r = v.ggm_r / 100, g = v.ggm_g / 100;
+      const gap = r - g;
+      if (gap <= 0.001) {
+        return { value: '∞ (undefined)', label: 'Stock Price', breakdown: 'r ≤ g — the model breaks down. A company cannot grow faster than the economy forever.', insight: `You've pushed g almost to r — the denominator approaches zero and the price approaches infinity. This is why the GGM <em>cannot be used for high-growth companies</em>. If a company could truly grow dividends faster than your required return forever, you'd pay anything for it. That's not realistic.` };
+      }
+      const P = D1 / gap;
+      const breakdown = `D₁ = $${v.ggm_d0} × (1+${v.ggm_g}%) = <strong>$${D1.toFixed(2)}</strong> | P₀ = $${D1.toFixed(2)} / (${v.ggm_r}%−${v.ggm_g}%) = <strong>$${P.toFixed(2)}</strong>`;
+      const divYield = (D1 / P * 100).toFixed(2);
+      let insight = '';
+      const rg_pct = (gap * 100).toFixed(2);
+      if (gap < 0.02) insight = `The gap between r and g is only <em>${rg_pct}%</em> — tiny! This makes the price extremely sensitive to small changes in either r or g. A 0.25% move in either direction would dramatically change the valuation. This is why growth stocks are volatile.`;
+      else if (gap < 0.04) insight = `The spread of <em>${rg_pct}%</em> between required return and growth is relatively narrow. The stock trades at <strong>${(P / D1).toFixed(1)}× D₁</strong>, implying investors are paying a significant premium for the growth. Dividend yield is only ${divYield}% — most return is expected from price appreciation.`;
+      else if (gap < 0.07) insight = `With a spread of <em>${rg_pct}%</em>, this is a <strong>typical stable-growth scenario</strong>. The stock prices at <strong>$${P.toFixed(2)}</strong>, with a dividend yield of ${divYield}%. Roughly ${(Number(v.ggm_g) / v.ggm_r * 100).toFixed(0)}% of the expected return comes from growth and ${(100 - Number(v.ggm_g) / v.ggm_r * 100).toFixed(0)}% from dividends.`;
+      else insight = `The wide spread of <em>${rg_pct}%</em> between r and g suggests either a <strong>low-growth or high-risk company</strong>. The price of $${P.toFixed(2)} offers a healthy dividend yield of ${divYield}% — most of the expected return comes from income, not capital appreciation.`;
+      return { value: `$${P.toFixed(2)}`, label: 'Stock Price P₀', breakdown, insight };
+    },
+    chart(v) {
+      const D1 = v.ggm_d0 * (1 + v.ggm_g / 100);
+      const g = v.ggm_g / 100;
+      const rs = [], prices = [];
+      const minR = v.ggm_g + 0.5;
+      for (let r = minR; r <= 20; r += 0.5) {
+        rs.push(r.toFixed(1) + '%');
+        prices.push((D1 / (r / 100 - g)).toFixed(2));
+      }
+      return {
+        labels: rs,
+        datasets: [{ label: 'Stock Price (GGM)', data: prices, borderColor: '#2a7a4f', backgroundColor: 'rgba(42,122,79,0.06)', tension: 0.4, pointRadius: 2 }],
+        xLabel: 'Required Return r (%)', yLabel: 'Stock Price ($)', caption: 'Price collapses as r rises — investors demanding more return pay less today'
+      };
+    },
+    traps: [
+      { label: 'D₀ vs D₁', text: 'The formula uses <strong>D₁ (next year\'s dividend)</strong>, not D₀ (this year\'s). If the exam gives D₀, you must first calculate D₁ = D₀ × (1+g). Plugging in D₀ directly is one of the most common GGM errors.' },
+      { label: 'The model\'s key assumption', text: 'GGM assumes <strong>g is constant forever and g < r</strong>. It is only appropriate for mature, stable companies (utilities, REITs, large consumer staples). Never use it for Tesla or a startup.' },
+    ],
+    reality: `The GGM is also rearrangeable to find the implied required return: r = D₁/P + g. This form lets you estimate the market's expected return for any dividend-paying stock using observable data.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 4. WACC
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'wacc',
+    subject: 'Corporate Finance',
+    name: 'WACC',
+    tagline: 'The minimum return a firm must earn',
+    bigIdea: `A company is funded by two groups: <strong>debt holders</strong> and <strong>equity holders</strong>. Each demands a return for providing capital. WACC is the weighted average of those demands — the absolute minimum return the firm must generate on its assets just to keep everyone satisfied. Every project must clear this hurdle.`,
+    formula: `WACC = <span class="hi">Wd</span>×<span class="hi">Kd</span>×(1−<span class="hi2">t</span>) + <span class="hi3">We</span>×<span class="hi3">Ke</span>`,
+    vars: [
+      { sym: 'Wd / We', def: 'Weights of debt and equity in the capital structure (at market value)' },
+      { sym: 'Kd', def: 'Pre-tax cost of debt (yield on existing debt)' },
+      { sym: '(1−t)', def: 'Tax shield: interest is tax-deductible, so after-tax cost < pre-tax cost' },
+      { sym: 'Ke', def: 'Cost of equity — usually estimated using CAPM' },
+    ],
+    intuition: `Imagine a firm funded 40% by debt at 5% and 60% by equity at 12%. Debt's after-tax cost (say at 25% tax) is only 3.75%. So WACC = 40%×3.75% + 60%×12% = 8.7%. Every rupee of assets must earn at least 8.7% — otherwise the firm is destroying value. Projects that return more than WACC create wealth; those below it destroy it.`,
+    pullQuote: `"The tax shield on debt is why companies use leverage. The government subsidizes debt financing by making interest tax-deductible — WACC captures this benefit."`,
+    connected: ['capm', 'npv-irr', 'wacc-ke'],
+    inputs: [
+      { id: 'wacc_wd', label: 'Weight of Debt', sym: 'Wd', type: 'range', min: 0, max: 100, step: 5, val: 40, unit: '%' },
+      { id: 'wacc_kd', label: 'Pre-tax Cost of Debt', sym: 'Kd', type: 'range', min: 1, max: 15, step: 0.25, val: 5, unit: '%' },
+      { id: 'wacc_t', label: 'Tax Rate', sym: 't', type: 'range', min: 0, max: 50, step: 1, val: 25, unit: '%' },
+      { id: 'wacc_ke', label: 'Cost of Equity', sym: 'Ke', type: 'range', min: 1, max: 25, step: 0.25, val: 12, unit: '%' },
+    ],
+    calc(v) {
+      const wd = v.wacc_wd / 100, we = 1 - wd;
+      const kd_at = v.wacc_kd * (1 - v.wacc_t / 100);
+      const wacc = wd * kd_at / 100 + we * v.wacc_ke / 100;
+      const shield = v.wacc_kd * v.wacc_t / 100;
+      const breakdown = `Debt: ${v.wacc_wd}% × ${kd_at.toFixed(2)}% + Equity: ${(we * 100).toFixed(0)}% × ${v.wacc_ke}% = <strong>${(wacc * 100).toFixed(2)}%</strong>`;
+      let insight = '';
+      if (v.wacc_wd === 0) {
+        insight = `With <em>zero debt</em>, WACC equals the cost of equity (${v.wacc_ke}%). The firm is all-equity financed — no tax shield benefit. This is the highest possible WACC for this cost of equity.`;
+      } else if (v.wacc_wd >= 80) {
+        insight = `With <em>${v.wacc_wd}% debt</em>, the firm is highly leveraged. The tax shield is maximized, pulling WACC down. But this ignores financial distress risk — in practice, at extreme leverage, Kd and Ke both rise, eventually pushing WACC back up.`;
+      } else {
+        insight = `The <em>tax shield saves ${shield.toFixed(2)}%</em> per unit of debt cost. With ${v.wacc_wd}% debt, after-tax debt cost is ${kd_at.toFixed(2)}% vs ${v.wacc_ke}% for equity — debt is cheaper. WACC of <strong>${(wacc * 100).toFixed(2)}%</strong> is the hurdle rate: any project must return at least this much.`;
+      }
+      return { value: `${(wacc * 100).toFixed(2)}%`, label: 'WACC', breakdown, insight };
+    },
+    chart(v) {
+      const we_vals = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+      const kd_at = v.wacc_kd * (1 - v.wacc_t / 100) / 100;
+      const ke = v.wacc_ke / 100;
+      const data = we_vals.map(we => ((1 - we / 100) * kd_at * 100 + (we / 100) * ke * 100).toFixed(2));
+      return {
+        labels: we_vals.map(w => w + '%'),
+        datasets: [{ label: 'WACC', data, borderColor: '#b8860b', backgroundColor: 'rgba(184,134,11,0.06)', tension: 0.1, pointRadius: 3 }],
+        xLabel: 'Weight of Equity (%)', yLabel: 'WACC (%)', caption: 'WACC as equity weight changes (holding individual costs constant)'
+      };
+    },
+    traps: [
+      { label: 'Market values, not book values', text: 'Always use <strong>market value weights</strong>, not book value. Book values reflect historical costs; WACC is about current market conditions. Using book values is a frequent exam trap.' },
+      { label: 'WACC is used as the discount rate in NPV', text: 'When a firm evaluates a project, it discounts cash flows at WACC. If the project has <strong>different risk than the firm</strong>, you should use a project-specific discount rate — not the firm\'s WACC.' },
+    ],
+    reality: `WACC connects to firm valuation: Enterprise Value = FCFF / (WACC − g). This is the corporate finance equivalent of the GGM, and it shows how WACC directly drives firm value.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 5. MODIFIED DURATION
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'mod-duration',
+    subject: 'Fixed Income',
+    name: 'Modified Duration',
+    tagline: 'How sensitive is your bond to interest rate changes?',
+    bigIdea: `You now know how to price a bond. But here's a practical question: if interest rates rise by 1%, <strong>how much does my bond price fall?</strong> Modified duration gives you the answer in one number — the approximate percentage change in bond price for a 1% change in yield.`,
+    formula: `ModDur = <span class="hi">MacDur</span> / (1 + <span class="hi2">YTM</span>)<br><small style="font-size:0.9rem">ΔP ≈ −ModDur × <span class="hi3">ΔYield</span> × Price</small>`,
+    vars: [
+      { sym: 'MacDur', def: 'Macaulay Duration — weighted average time to receive the bond\'s cash flows' },
+      { sym: 'YTM', def: 'Yield to maturity — the current market rate' },
+      { sym: 'ΔYield', def: 'Change in yield (in decimal form — 1% = 0.01)' },
+      { sym: 'ΔP', def: 'Approximate dollar change in bond price' },
+    ],
+    intuition: `Think of duration as the bond's "age" in economic terms. A bond that returns most of its cash quickly (short Macaulay Duration) doesn't care much about rate changes. A bond with a long wait before payback is severely impacted — it's locked in at the old rate for a long time. <strong>Duration quantifies this lock-in risk.</strong>`,
+    pullQuote: `"A 30-year zero coupon bond has duration of 30. Every basis point move in yields moves its price by 30 × 0.01% = 0.30%. That's why long bonds are so volatile."`,
+    connected: ['bond-price', 'convexity'],
+    inputs: [
+      { id: 'md_macdur', label: 'Macaulay Duration (yrs)', sym: 'MacDur', type: 'range', min: 0.5, max: 25, step: 0.5, val: 7, unit: 'yrs' },
+      { id: 'md_ytm', label: 'YTM', sym: 'YTM', type: 'range', min: 0.5, max: 15, step: 0.25, val: 6, unit: '%' },
+      { id: 'md_dy', label: 'Yield Change', sym: 'ΔYield', type: 'range', min: -200, max: 200, step: 10, val: 50, unit: 'bps' },
+      { id: 'md_price', label: 'Bond Price ($)', sym: 'P', type: 'number', min: 100, max: 2000, step: 10, val: 1000, unit: '$' },
+    ],
+    calc(v) {
+      const modDur = v.md_macdur / (1 + v.md_ytm / 100);
+      const dy = v.md_dy / 10000;
+      const dp = -modDur * dy * v.md_price;
+      const newPrice = v.md_price + dp;
+      const pctChange = (dp / v.md_price * 100).toFixed(2);
+      const breakdown = `ModDur = ${v.md_macdur}/(1+${v.md_ytm}%) = <strong>${modDur.toFixed(3)}</strong> | ΔP ≈ −${modDur.toFixed(3)} × ${v.md_dy}bps × $${v.md_price} = <strong>$${dp.toFixed(2)}</strong>`;
+      let insight = '';
+      const direction = v.md_dy > 0 ? 'risen' : 'fallen';
+      const priceMove = dp > 0 ? 'risen' : 'fallen';
+      if (v.md_dy === 0) {
+        insight = `No yield change — no price change. Duration only matters when yields actually move. The value of ${modDur.toFixed(3)} tells you: if yields change by 1%, expect roughly a <em>${modDur.toFixed(1)}% price move</em> in the opposite direction.`;
+      } else {
+        insight = `Yields have <em>${direction} by ${Math.abs(v.md_dy)} basis points</em>. The bond price has <strong>${priceMove} by $${Math.abs(dp).toFixed(2)} (${Math.abs(Number(pctChange))}%)</strong>, from $${v.md_price} to $${newPrice.toFixed(2)}. Notice the <em>negative relationship</em> — this is fundamental to fixed income. A duration of ${modDur.toFixed(2)} means every 100bps of yield change moves price ~${modDur.toFixed(1)}%.`;
+      }
+      return { value: modDur.toFixed(3), label: 'Modified Duration', breakdown, insight };
+    },
+    traps: [
+      { label: 'Duration is approximate, not exact', text: 'Duration gives a <strong>linear approximation</strong>. The true price-yield relationship is curved (convex). For large yield changes, duration alone underestimates price increases and overestimates price decreases. Add a convexity adjustment for accuracy.' },
+      { label: 'Callable bonds have lower duration', text: 'Call options effectively <strong>cap the upside</strong> of price appreciation when yields fall. This is negative convexity — callable bonds and mortgage-backed securities exhibit it. Duration alone understates their risk near the call price.' },
+    ],
+    reality: `Portfolio managers use duration to manage interest rate risk. A pension fund matching long liabilities should hold long-duration bonds. A money market fund should minimize duration. "Immunization" strategies use duration matching to eliminate interest rate risk entirely.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 6. SHARPE RATIO
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'sharpe',
+    subject: 'Portfolio Management',
+    name: 'Sharpe Ratio',
+    tagline: 'Are you being paid enough for the risk you\'re taking?',
+    bigIdea: `A portfolio returning 15% sounds great — until you learn it swings 40% up and down. Was it worth the rollercoaster? The Sharpe ratio cuts through raw returns and asks: <strong>for every unit of volatility you endured, how much excess return did you earn?</strong> It's the universal report card for investment managers.`,
+    formula: `Sharpe = (<span class="hi">Rp</span> − <span class="hi2">Rf</span>) / <span class="hi3">σp</span>`,
+    vars: [
+      { sym: 'Rp', def: 'Portfolio return — what you actually earned' },
+      { sym: 'Rf', def: 'Risk-free rate — what you would have earned with zero risk' },
+      { sym: 'Rp − Rf', def: 'Excess return — the reward for taking risk' },
+      { sym: 'σp', def: 'Portfolio standard deviation — total volatility (both up and down)' },
+    ],
+    intuition: `If Portfolio A earned 12% with 10% volatility and Portfolio B earned 18% with 30% volatility (both with Rf=3%), their Sharpe ratios are 0.9 and 0.5 respectively. Portfolio A gave you <strong>more reward per unit of pain</strong>, even though B had higher raw returns. Sharpe lets you make apples-to-apples comparisons across portfolios.`,
+    pullQuote: `"Higher is always better with Sharpe. But the benchmark matters — compare Sharpe ratios only across similar strategies, not a hedge fund vs a bond fund."`,
+    connected: ['capm', 'jensens', 'port-var'],
+    inputs: [
+      { id: 'sh_rp', label: 'Portfolio Return', sym: 'Rp', type: 'range', min: -5, max: 30, step: 0.5, val: 12, unit: '%' },
+      { id: 'sh_rf', label: 'Risk-Free Rate', sym: 'Rf', type: 'range', min: 0, max: 10, step: 0.25, val: 3, unit: '%' },
+      { id: 'sh_sigma', label: 'Std Deviation', sym: 'σp', type: 'range', min: 1, max: 50, step: 0.5, val: 15, unit: '%' },
+    ],
+    calc(v) {
+      const excess = v.sh_rp - v.sh_rf;
+      const sharpe = excess / v.sh_sigma;
+      const breakdown = `(${v.sh_rp}% − ${v.sh_rf}%) / ${v.sh_sigma}% = <strong>${sharpe.toFixed(3)}</strong>`;
+      let grade, insight;
+      if (sharpe < 0) {
+        grade = '❌ Negative';
+        insight = `A <em>negative Sharpe ratio</em> means the portfolio actually earned <strong>less than the risk-free rate</strong> after adjusting for risk. You would have been better off in T-bills. The manager is destroying risk-adjusted value.`;
+      } else if (sharpe < 0.3) {
+        grade = '⚠️ Poor';
+        insight = `A Sharpe of ${sharpe.toFixed(2)} is <em>quite low</em>. You're earning only ${sharpe.toFixed(2)} units of excess return per unit of volatility. For context, the S&P 500 has historically averaged a Sharpe of about 0.4–0.5. This portfolio is underperforming on a risk-adjusted basis.`;
+      } else if (sharpe < 0.7) {
+        grade = '✅ Acceptable';
+        insight = `Sharpe of ${sharpe.toFixed(2)} is <em>around market average</em>. The portfolio is generating reasonable risk-adjusted returns. Most institutional funds target a Sharpe above 0.5 as a minimum threshold.`;
+      } else if (sharpe < 1.2) {
+        grade = '🌟 Good';
+        insight = `A Sharpe of ${sharpe.toFixed(2)} is <em>above average</em> — this portfolio is generating strong risk-adjusted returns. Consistent Sharpe ratios above 1.0 are rare and suggest genuine skill or favorable market conditions.`;
+      } else {
+        grade = '💎 Exceptional';
+        insight = `Sharpe of ${sharpe.toFixed(2)} is <em>exceptional</em> — either this is a genuinely outstanding manager, the risk is being understated, or there's survivorship bias. Sharpe ratios consistently above 1.5 are very rare in practice.`;
+      }
+      return { value: `${sharpe.toFixed(3)} — ${grade}`, label: 'Sharpe Ratio', breakdown, insight };
+    },
+    traps: [
+      { label: 'Sharpe vs Treynor — which to use?', text: 'Use <strong>Sharpe</strong> when evaluating a standalone portfolio (it uses total risk σ). Use <strong>Treynor</strong> when the portfolio is a component of a larger diversified fund (it uses only systematic risk β). The question context tells you which one.' },
+      { label: 'Sharpe penalizes upside volatility too', text: 'Standard deviation counts both up and down moves as "risk." A portfolio that only shoots up dramatically would have a high σ and therefore a penalized Sharpe ratio, even though the volatility was all in your favor. This is why the Sortino ratio (which only penalizes downside) was invented.' },
+    ],
+    reality: `Sharpe ratio is the most widely cited performance metric in the investment industry. Every fund fact sheet shows it. The original formula was published by William Sharpe in 1966 — the same Sharpe who co-developed CAPM.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 7. PORTFOLIO VARIANCE (2 ASSETS)
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'port-var',
+    subject: 'Portfolio Management',
+    name: 'Portfolio Variance',
+    tagline: 'Why two risky assets together can be safer than one',
+    bigIdea: `This is the mathematical proof of diversification. When you combine two assets, the portfolio's risk is <strong>not simply the average of their individual risks</strong> — it's something smaller, because when one asset zigs, the other may zag. The correlation term captures exactly how much risk you eliminate by combining them.`,
+    formula: `σ²p = <span class="hi">w₁²σ₁²</span> + <span class="hi2">w₂²σ₂²</span> + 2<span class="hi3">w₁w₂ρσ₁σ₂</span>`,
+    vars: [
+      { sym: 'w₁, w₂', def: 'Portfolio weights of each asset (must sum to 1)' },
+      { sym: 'σ₁, σ₂', def: 'Standard deviations of each asset\'s return' },
+      { sym: 'ρ (rho)', def: 'Correlation between the two assets (ranges from −1 to +1)' },
+      { sym: '2w₁w₂ρσ₁σ₂', def: 'The covariance term — this is where diversification lives' },
+    ],
+    intuition: `If ρ = +1, the assets move in perfect lockstep — no diversification benefit, portfolio risk = weighted average. If ρ = −1, perfect negative correlation — you can construct a <strong>zero-risk portfolio</strong>. Real assets fall between these extremes, so diversification always helps somewhat.`,
+    pullQuote: `"The entire field of modern portfolio theory rests on this formula. Harry Markowitz won the Nobel Prize for this insight in 1952."`,
+    connected: ['capm', 'sharpe', 'beta'],
+    inputs: [
+      { id: 'pv_w1', label: 'Weight Asset 1', sym: 'w₁', type: 'range', min: 0, max: 100, step: 5, val: 60, unit: '%' },
+      { id: 'pv_s1', label: 'Std Dev Asset 1', sym: 'σ₁', type: 'range', min: 1, max: 50, step: 1, val: 20, unit: '%' },
+      { id: 'pv_s2', label: 'Std Dev Asset 2', sym: 'σ₂', type: 'range', min: 1, max: 50, step: 1, val: 30, unit: '%' },
+      { id: 'pv_rho', label: 'Correlation ρ', sym: 'ρ', type: 'range', min: -1, max: 1, step: 0.05, val: 0.3, unit: '' },
+    ],
+    calc(v) {
+      const w1 = v.pv_w1 / 100, w2 = 1 - w1;
+      const s1 = v.pv_s1 / 100, s2 = v.pv_s2 / 100;
+      const cov = v.pv_rho * s1 * s2;
+      const varP = w1 * w1 * s1 * s1 + w2 * w2 * s2 * s2 + 2 * w1 * w2 * cov;
+      const sigP = Math.sqrt(varP) * 100;
+      const wtdAvg = w1 * v.pv_s1 + w2 * v.pv_s2;
+      const benefit = wtdAvg - sigP;
+      const breakdown = `Covariance = ${v.pv_rho} × ${v.pv_s1}% × ${v.pv_s2}% = <strong>${(cov * 10000).toFixed(2)}</strong> | σp = <strong>${sigP.toFixed(2)}%</strong>`;
+      let insight = '';
+      if (v.pv_rho >= 0.99) {
+        insight = `With correlation of <em>+1</em>, the two assets move in perfect lockstep. There is <strong>zero diversification benefit</strong> — portfolio std dev equals the weighted average of individual std devs (${wtdAvg.toFixed(2)}%). You might as well hold one asset.`;
+      } else if (v.pv_rho <= -0.99) {
+        insight = `Perfect negative correlation! The assets move in exactly opposite directions. You can construct a <em>zero-risk portfolio</em> by choosing the right weights. This is the theoretical maximum of diversification — eliminating all risk by combining two risky assets.`;
+      } else {
+        insight = `By combining these two assets, portfolio std dev is <strong>${sigP.toFixed(2)}%</strong> vs the weighted average of <strong>${wtdAvg.toFixed(2)}%</strong>. The correlation of ${v.pv_rho} enables a <em>risk reduction of ${benefit.toFixed(2)} percentage points</em>. Lower the correlation and watch this benefit grow — this is diversification in action.`;
+      }
+      return { value: `σp = ${sigP.toFixed(2)}%`, label: 'Portfolio Std Dev', breakdown, insight };
+    },
+    chart(v) {
+      const s1 = v.pv_s1 / 100, s2 = v.pv_s2 / 100;
+      const rhos = [-1, -0.5, 0, 0.5, 1];
+      const w1vals = Array.from({ length: 21 }, (_, i) => i / 20);
+      const datasets = rhos.map((rho, idx) => {
+        const colors = ['#2a7a4f', '#2d6a9f', '#b8860b', '#c8401a', '#888'];
+        const data = w1vals.map(w1 => {
+          const w2 = 1 - w1;
+          const cov = rho * s1 * s2;
+          return (Math.sqrt(w1 * w1 * s1 * s1 + w2 * w2 * s2 * s2 + 2 * w1 * w2 * cov) * 100).toFixed(2);
+        });
+        return { label: 'ρ=' + rho, data, borderColor: colors[idx], backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2 };
+      });
+      return {
+        labels: w1vals.map(w => Math.round(w * 100) + '%'),
+        datasets,
+        xLabel: 'Weight in Asset 1', yLabel: 'Portfolio Std Dev (%)', caption: 'Lower correlation = lower portfolio risk for any given mix of assets'
+      };
+    },
+    traps: [
+      { label: 'Correlation ≠ Causation', text: 'Two assets can be correlated without any causal link. Correlation also <strong>changes over time</strong> — especially during market crises, correlations often spike toward +1 (everything falls together), eliminating the diversification benefit exactly when you need it most.' },
+      { label: 'Portfolio variance ≠ weighted average variance', text: 'The portfolio variance is always <strong>less than or equal to</strong> the weighted average of individual variances (when ρ < 1). This is the mathematical proof that diversification reduces risk. Never simply average the variances.' },
+    ],
+    reality: `This formula is the core of Markowitz's Modern Portfolio Theory. The "efficient frontier" is constructed by finding the minimum-variance portfolio for each level of expected return — all using this formula applied to multiple assets.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 8. DUPONT
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'dupont',
+    subject: 'Financial Statement Analysis',
+    name: 'DuPont Analysis',
+    tagline: 'What is really driving a company\'s ROE?',
+    bigIdea: `Two companies can have the same ROE but for completely different reasons. One earns high profits on thin revenues. Another earns thin profits but turns assets rapidly. A third uses massive debt to amplify returns. <strong>DuPont breaks ROE into three drivers</strong> so you can see which story is true — and whether the ROE is sustainable.`,
+    formula: `ROE = <span class="hi">Net Margin</span> × <span class="hi2">Asset Turnover</span> × <span class="hi3">Equity Multiplier</span>`,
+    vars: [
+      { sym: 'Net Margin', def: 'NI/Revenue — how much profit per rupee of sales (profitability)' },
+      { sym: 'Asset Turnover', def: 'Revenue/Assets — how efficiently assets generate sales (efficiency)' },
+      { sym: 'Equity Multiplier', def: 'Assets/Equity — how much leverage is being used (financial leverage)' },
+    ],
+    intuition: `A luxury brand like Hermès has fat margins but slow asset turnover. A retailer like Walmart has razor-thin margins but blisteringly fast asset turns. A bank has both thin margins and slow turns — but uses enormous leverage (equity multiplier of 10+) to still generate decent ROE. <strong>DuPont reveals the business model behind the number.</strong>`,
+    pullQuote: `"High ROE isn't always good. If it's driven purely by a rising equity multiplier (more debt), the risk is rising with the return. DuPont is how you see that."`,
+    connected: ['roe-roa', 'eps', 'wacc'],
+    inputs: [
+      { id: 'dp_ni', label: 'Net Income ($)', sym: 'NI', type: 'number', min: 0, max: 10000, step: 100, val: 500 },
+      { id: 'dp_rev', label: 'Revenue ($)', sym: 'Rev', type: 'number', min: 1, max: 50000, step: 500, val: 5000 },
+      { id: 'dp_assets', label: 'Total Assets ($)', sym: 'A', type: 'number', min: 1, max: 50000, step: 500, val: 8000 },
+      { id: 'dp_equity', label: 'Equity ($)', sym: 'E', type: 'number', min: 1, max: 50000, step: 500, val: 3000 },
+    ],
+    calc(v) {
+      const nm = v.dp_ni / v.dp_rev;
+      const at = v.dp_rev / v.dp_assets;
+      const em = v.dp_assets / v.dp_equity;
+      const roe = nm * at * em;
+      const roe_direct = v.dp_ni / v.dp_equity;
+      const breakdown = `NM: <strong>${(nm * 100).toFixed(2)}%</strong> × AT: <strong>${at.toFixed(2)}x</strong> × EM: <strong>${em.toFixed(2)}x</strong> = <strong>${(roe * 100).toFixed(2)}%</strong>`;
+      let dominant = '', insight = '';
+      if (nm > 0.15 && at < 0.8) dominant = 'profitability (high margin, slow turns)';
+      else if (nm < 0.05 && at > 1.5) dominant = 'efficiency (thin margin, high asset turnover)';
+      else if (em > 4) dominant = 'financial leverage (high equity multiplier)';
+      else dominant = 'a balanced mix of all three drivers';
+      if (em > 5) {
+        insight = `The equity multiplier is <em>${em.toFixed(2)}x</em> — this ROE is heavily driven by <strong>financial leverage</strong>. The company is using a lot of debt. If earnings falter, this leverage amplifies losses just as it amplified gains. Compare ROA (${(roe_direct / em * 100).toFixed(2)}%) to ROE (${(roe * 100).toFixed(2)}%) — the gap shows how much leverage is doing.`;
+      } else {
+        insight = `The ROE of <strong>${(roe * 100).toFixed(2)}%</strong> is primarily driven by <em>${dominant}</em>. Net margin of ${(nm * 100).toFixed(2)}% tells you about pricing power and cost control. Asset turnover of ${at.toFixed(2)}x reflects capital efficiency. Equity multiplier of ${em.toFixed(2)}x shows moderate leverage. Change each input to see which driver matters most.`;
+      }
+      return { value: `ROE = ${(roe * 100).toFixed(2)}%`, label: 'Return on Equity', breakdown, insight };
+    },
+    traps: [
+      { label: 'Same ROE, very different risk', text: 'A company with ROE driven by high margin is far less risky than one with the same ROE driven by high leverage. The <strong>quality of ROE matters</strong>, not just the number. This is a common exam question.' },
+      { label: 'The 5-part DuPont', text: 'The 5-part version splits the net margin into: <strong>Tax Burden × Interest Burden × EBIT Margin</strong>. This isolates the effect of taxes and interest payments separately, giving deeper insight into what changed between periods.' },
+    ],
+    reality: `DuPont analysis was invented by the DuPont Corporation in the 1920s. It became the standard framework for financial analysis and is still used universally in equity research today.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 9. NPV & IRR
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'npv',
+    subject: 'Corporate Finance',
+    name: 'NPV & IRR',
+    tagline: 'Should this project be built?',
+    bigIdea: `A company can only create value if it takes on projects that earn more than they cost — accounting for the time value of money. <strong>NPV measures exactly how much wealth a project creates</strong> in today's dollars. IRR asks the question differently: at what discount rate would this project break even? Both answer the same question from different angles.`,
+    formula: `NPV = Σ <span class="hi">CFt</span> / (1+<span class="hi2">r</span>)^t − <span class="hi3">C₀</span>`,
+    vars: [
+      { sym: 'CFt', def: 'Cash flow in period t — the money the project actually generates' },
+      { sym: 'r', def: 'Discount rate — usually WACC for a typical firm project' },
+      { sym: 'C₀', def: 'Initial investment (cash outflow at time zero)' },
+      { sym: 'IRR', def: 'The discount rate that makes NPV = 0 (the project\'s internal return)' },
+    ],
+    intuition: `NPV is like asking: if I could buy this project's cash flows at the market rate (WACC), would I pay more or less than the asking price (C₀)? If more, NPV is positive — the project is worth more than it costs. IRR is the rate of return the project earns on its invested capital — if that exceeds WACC, it's creating value.`,
+    pullQuote: `"When NPV and IRR conflict, always trust NPV. IRR assumes interim cash flows are reinvested at the IRR — an optimistic assumption. NPV assumes reinvestment at WACC — more realistic."`,
+    connected: ['wacc', 'capm', 'tvm'],
+    inputs: [
+      { id: 'npv_r', label: 'Discount Rate (WACC)', sym: 'r', type: 'range', min: 1, max: 30, step: 0.5, val: 10, unit: '%' },
+      { id: 'npv_c0', label: 'Initial Investment', sym: 'C₀', type: 'number', min: 0, max: 100000, step: 1000, val: 10000, unit: '$' },
+      { id: 'npv_cf1', label: 'CF Year 1 ($)', sym: 'CF₁', type: 'number', min: 0, max: 50000, step: 500, val: 3000, unit: '$' },
+      { id: 'npv_cf2', label: 'CF Year 2 ($)', sym: 'CF₂', type: 'number', min: 0, max: 50000, step: 500, val: 4000, unit: '$' },
+      { id: 'npv_cf3', label: 'CF Year 3 ($)', sym: 'CF₃', type: 'number', min: 0, max: 50000, step: 500, val: 5000, unit: '$' },
+      { id: 'npv_cf4', label: 'CF Year 4 ($)', sym: 'CF₄', type: 'number', min: 0, max: 50000, step: 500, val: 5000, unit: '$' },
+    ],
+    calc(v) {
+      const r = v.npv_r / 100;
+      const cfs = [v.npv_cf1, v.npv_cf2, v.npv_cf3, v.npv_cf4];
+      let pv = 0;
+      cfs.forEach((cf, i) => { pv += cf / Math.pow(1 + r, i + 1); });
+      const npv = pv - v.npv_c0;
+      const breakdown = `PV of CFs: <strong>$${pv.toFixed(0)}</strong> − Initial cost: <strong>$${v.npv_c0.toLocaleString()}</strong> = <strong>$${npv.toFixed(0)}</strong>`;
+      let insight = '';
+      if (npv > 0) {
+        insight = `NPV is <em>positive ($${npv.toFixed(0)})</em> — the project should be <strong>accepted</strong>. At a discount rate of ${v.npv_r}%, these cash flows are worth <strong>$${npv.toFixed(0)} more</strong> than the investment costs. The firm has created $${npv.toFixed(0)} of value today by undertaking this project.`;
+      } else if (npv < 0) {
+        insight = `NPV is <em>negative ($${npv.toFixed(0)})</em> — the project should be <strong>rejected</strong>. Even though the undiscounted cash flows may total more than the cost, they don't generate enough return to justify the investment at a ${v.npv_r}% hurdle rate. Try lowering the discount rate to see where NPV turns positive.`;
+      } else {
+        insight = `NPV is exactly zero — the project earns precisely the required return. This is the break-even point, equivalent to IRR equaling the discount rate. Theoretically indifferent to accepting or rejecting.`;
+      }
+      return { value: `NPV = $${npv.toFixed(0)}`, label: npv >= 0 ? '✅ Accept' : '❌ Reject', breakdown, insight };
+    },
+    chart(v) {
+      const cfs = [v.npv_cf1, v.npv_cf2, v.npv_cf3, v.npv_cf4];
+      const rates = [], npvs = [];
+      for (let r = 0; r <= 50; r += 2) {
+        const pv = cfs.reduce((s, cf, i) => s + cf / Math.pow(1 + r / 100, i + 1), 0);
+        rates.push(r + '%');
+        npvs.push((pv - v.npv_c0).toFixed(0));
+      }
+      return {
+        labels: rates,
+        datasets: [
+          { label: 'NPV', data: npvs, borderColor: '#2a7a4f', backgroundColor: 'rgba(42,122,79,0.06)', tension: 0.4, pointRadius: 2 },
+          { label: 'NPV = 0 (IRR)', data: Array(rates.length).fill(0), borderColor: '#c8401a', borderDash: [4, 4], pointRadius: 0, borderWidth: 1.5 }
+        ],
+        xLabel: 'Discount Rate (%)', yLabel: 'NPV ($)', caption: 'Where the NPV curve crosses zero is the IRR — the project\'s internal rate of return'
+      };
+    },
+    traps: [
+      { label: 'Multiple IRRs', text: 'If a project has <strong>unconventional cash flows</strong> (more than one sign change — e.g., positive, then negative, then positive again), there can be multiple IRRs. NPV always gives a unique answer, which is why it\'s the preferred method.' },
+      { label: 'Mutually exclusive projects — scale matters', text: 'For mutually exclusive projects of <strong>different sizes</strong>, IRR may favor the smaller project (higher % return on a smaller base). NPV always correctly identifies the project that maximizes wealth. Use NPV.' },
+    ],
+    reality: `NPV is the theoretically correct measure of value creation. Every finance textbook — from CFA to MBA programs — agrees: when in doubt, use NPV. IRR is more intuitive to explain to non-finance stakeholders, which is why it remains popular in practice despite its limitations.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 10. PUT-CALL PARITY
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'put-call',
+    subject: 'Derivatives',
+    name: 'Put-Call Parity',
+    tagline: 'The unbreakable relationship between calls, puts, stock, and bonds',
+    bigIdea: `Put-call parity says that two portfolios that produce the same payoff at expiry <strong>must cost the same today</strong> — otherwise free money (arbitrage) would exist. It's not a formula you derive from assumptions; it's a <em>no-arbitrage law</em> that must hold in any rational market.`,
+    formula: `<span class="hi">C</span> + PV(<span class="hi2">X</span>) = <span class="hi3">P</span> + <span class="hi3">S</span>`,
+    vars: [
+      { sym: 'C', def: 'Price of the call option (right to buy at strike X)' },
+      { sym: 'PV(X)', def: 'Present value of the strike price — like lending X today at the risk-free rate' },
+      { sym: 'P', def: 'Price of the put option (right to sell at strike X)' },
+      { sym: 'S', def: 'Current stock price' },
+    ],
+    intuition: `Left side: Buy a call + invest PV(X) in bonds (which grows to X at expiry). Right side: Buy a put + buy the stock. Both portfolios produce the same payoff at expiry — the higher of S or X. Since they deliver identical outcomes, <strong>they must cost the same today.</strong> If they didn't, you could buy the cheap side, sell the expensive side, and earn a risk-free profit.`,
+    pullQuote: `"Put-call parity lets you create synthetic positions. A synthetic call = put + stock − PV(X). This is used daily by options traders and market makers."`,
+    connected: ['capm', 'forward-price'],
+    inputs: [
+      { id: 'pcp_s', label: 'Stock Price S ($)', sym: 'S', type: 'range', min: 50, max: 200, step: 1, val: 100, unit: '$' },
+      { id: 'pcp_x', label: 'Strike Price X ($)', sym: 'X', type: 'range', min: 50, max: 200, step: 1, val: 105, unit: '$' },
+      { id: 'pcp_r', label: 'Risk-Free Rate', sym: 'r', type: 'range', min: 0, max: 10, step: 0.25, val: 4, unit: '%' },
+      { id: 'pcp_t', label: 'Time to Expiry (years)', sym: 'T', type: 'range', min: 0.1, max: 3, step: 0.1, val: 1, unit: 'yr' },
+      { id: 'pcp_c', label: 'Call Price C ($)', sym: 'C', type: 'number', min: 0, max: 50, step: 0.5, val: 8, unit: '$' },
+    ],
+    calc(v) {
+      const pvx = v.pcp_x / Math.pow(1 + v.pcp_r / 100, v.pcp_t);
+      const implied_p = v.pcp_c + pvx - v.pcp_s;
+      const intrinsic_put = Math.max(v.pcp_x - v.pcp_s, 0);
+      const breakdown = `PV(X) = $${v.pcp_x}/(1+${v.pcp_r}%)^${v.pcp_t} = <strong>$${pvx.toFixed(2)}</strong> | Implied P = $${v.pcp_c} + $${pvx.toFixed(2)} − $${v.pcp_s} = <strong>$${implied_p.toFixed(2)}</strong>`;
+      let insight = '';
+      if (implied_p < 0) {
+        insight = `The implied put price is <em>negative ($${implied_p.toFixed(2)})</em> — this signals a potential arbitrage opportunity. In reality, a put price can never be negative. The call is likely mispriced. A smart trader would buy the put + stock and sell the call + bond to capture the discrepancy.`;
+      } else if (v.pcp_s > v.pcp_x) {
+        insight = `The stock ($${v.pcp_s}) is above the strike ($${v.pcp_x}) — the call is <em>in-the-money</em> and the put is out-of-the-money. The put's intrinsic value is zero, so the implied put price of <strong>$${implied_p.toFixed(2)}</strong> consists entirely of time value. Parity holds as long as this price is consistent with no-arbitrage.`;
+      } else {
+        insight = `The stock ($${v.pcp_s}) is below the strike ($${v.pcp_x}) — the put is <em>in-the-money</em> with intrinsic value of $${intrinsic_put.toFixed(2)}. The implied put price from parity is <strong>$${implied_p.toFixed(2)}</strong>. If an actual put trades at a different price, an arbitrage opportunity exists — buy the cheaper side and sell the more expensive synthetic equivalent.`;
+      }
+      return { value: `Implied Put = $${implied_p.toFixed(2)}`, label: 'Put Price (by Parity)', breakdown, insight };
+    },
+    traps: [
+      { label: 'Only works for European options', text: 'Put-call parity in this form only applies to <strong>European options</strong> (exercisable only at expiry). American options can be exercised early, which breaks the parity relationship. This distinction is tested.' },
+      { label: 'Rearranging for any variable', text: 'The CFA exam will give you 3 of the 4 variables and ask you to solve for the 4th. Know how to rearrange: <strong>Synthetic call = P + S − PV(X)</strong> and <strong>Synthetic put = C + PV(X) − S</strong> and <strong>Synthetic stock = C − P + PV(X)</strong>.' },
+    ],
+    reality: `Put-call parity is the foundation of all derivative pricing theory. It was first formally derived by Hans Stoll in 1969 and remains central to how options market makers price and hedge their books every day.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 11. TVM
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'tvm',
+    subject: 'Quantitative Methods',
+    name: 'Time Value of Money',
+    tagline: 'Why a rupee today is worth more than a rupee tomorrow',
+    bigIdea: `The most fundamental concept in all of finance: <strong>a dollar today is worth more than a dollar tomorrow</strong>. Why? Because today's dollar can be invested and earn a return. This simple idea underpins bond pricing, stock valuation, capital budgeting, retirement planning — everything.`,
+    formula: `FV = <span class="hi">PV</span> × (1+<span class="hi2">r</span>)^<span class="hi3">n</span>`,
+    vars: [
+      { sym: 'PV', def: 'Present Value — what you start with today' },
+      { sym: 'r', def: 'Interest rate per period — the growth rate of money' },
+      { sym: 'n', def: 'Number of periods — how long the money grows' },
+      { sym: 'FV', def: 'Future Value — what your money becomes over time' },
+    ],
+    intuition: `Compounding is often called the eighth wonder of the world. ₹10,000 at 8% for 30 years doesn't become ₹34,000 (3.4×) — it becomes ₹100,627 (10×), because each year's interest earns interest itself. The exponent n is what creates this explosive growth. <strong>Time is the most powerful variable.</strong>`,
+    pullQuote: `"The difference between simple interest and compound interest is the difference between arithmetic and exponential growth. Compound interest grows without bound."`,
+    connected: ['npv', 'bond-price', 'ggm'],
+    inputs: [
+      { id: 'tvm_pv', label: 'Present Value ($)', sym: 'PV', type: 'number', min: 100, max: 1000000, step: 1000, val: 10000, unit: '$' },
+      { id: 'tvm_r', label: 'Annual Rate', sym: 'r', type: 'range', min: 0.5, max: 20, step: 0.5, val: 8, unit: '%' },
+      { id: 'tvm_n', label: 'Years', sym: 'n', type: 'range', min: 1, max: 40, step: 1, val: 20, unit: 'yrs' },
+      { id: 'tvm_pmt', label: 'Annual Addition ($)', sym: 'PMT', type: 'number', min: 0, max: 100000, step: 500, val: 0, unit: '$' },
+    ],
+    calc(v) {
+      const r = v.tvm_r / 100, n = v.tvm_n;
+      const fv_lump = v.tvm_pv * Math.pow(1 + r, n);
+      const fv_ann = v.tvm_pmt > 0 ? v.tvm_pmt * (Math.pow(1 + r, n) - 1) / r : 0;
+      const total = fv_lump + fv_ann;
+      const totalInvested = v.tvm_pv + v.tvm_pmt * n;
+      const interestEarned = total - totalInvested;
+      const breakdown = `FV of initial: <strong>$${fv_lump.toFixed(0)}</strong>${v.tvm_pmt > 0 ? ` + FV of additions: <strong>$${fv_ann.toFixed(0)}</strong>` : ''} = <strong>$${total.toFixed(0)}</strong>`;
+      const multiple = (total / v.tvm_pv).toFixed(1);
+      let insight = '';
+      if (v.tvm_n >= 30) {
+        insight = `Over <em>${n} years at ${v.tvm_r}%</em>, your money grows <strong>${multiple}×</strong>. Total invested: $${totalInvested.toLocaleString()}. Interest earned through compounding: <strong>$${interestEarned.toFixed(0)}</strong>. Notice that compound interest dwarfs the original principal — this is the exponential power of time.`;
+      } else if (r >= 0.12) {
+        insight = `At a <em>high rate of ${v.tvm_r}%</em>, the <strong>Rule of 72</strong> predicts your money doubles every ${(72 / v.tvm_r).toFixed(1)} years. Over ${n} years, your $${v.tvm_pv.toLocaleString()} becomes <strong>$${total.toFixed(0)}</strong> — a ${multiple}× multiple driven by rate, not just time.`;
+      } else {
+        insight = `Your $${v.tvm_pv.toLocaleString()} grows to <strong>$${total.toFixed(0)}</strong> over ${n} years — a <em>${multiple}× multiple</em>. Total interest earned: <strong>$${interestEarned.toFixed(0)}</strong>. Try increasing n to 30 or 40 years and watch compounding become dramatic. Time is the biggest lever.`;
+      }
+      return { value: `FV = $${total.toFixed(0)}`, label: 'Future Value', breakdown, insight };
+    },
+    chart(v) {
+      const r = v.tvm_r / 100;
+      const labels = [], compound = [], simple = [];
+      for (let i = 0; i <= v.tvm_n; i++) {
+        labels.push('Yr ' + i);
+        compound.push((v.tvm_pv * Math.pow(1 + r, i) + (v.tvm_pmt > 0 ? v.tvm_pmt * (Math.pow(1 + r, i) - 1) / r : 0)).toFixed(0));
+        simple.push((v.tvm_pv + v.tvm_pv * r * i + v.tvm_pmt * i).toFixed(0));
+      }
+      return {
+        labels,
+        datasets: [
+          { label: 'Compound Growth', data: compound, borderColor: '#2a7a4f', backgroundColor: 'rgba(42,122,79,0.08)', fill: true, tension: 0.4, pointRadius: 1 },
+          { label: 'Simple Interest', data: simple, borderColor: '#aaaaaa', borderDash: [4, 4], tension: 0.1, pointRadius: 0, borderWidth: 1.5 }
+        ],
+        xLabel: 'Year', yLabel: 'Portfolio Value ($)', caption: 'Compound growth (green) diverges dramatically from simple interest (grey) over time'
+      };
+    },
+    traps: [
+      { label: 'Annuity due vs ordinary annuity', text: 'An ordinary annuity has payments at the <strong>end</strong> of each period (more common). An annuity due has payments at the <strong>beginning</strong>. An annuity due is always worth more by a factor of (1+r) — it earns one extra period of interest. Set BGN mode on your calculator for annuity due problems.' },
+      { label: 'Perpetuity: PV = PMT / r', text: 'A perpetuity pays forever. Its PV is simply PMT/r. This is the limiting case of the annuity formula as n → ∞, and it\'s the basis of the GGM (a growing perpetuity).' },
+    ],
+    reality: `TVM is the foundation of the entire CFA curriculum. Bond pricing, equity valuation, capital budgeting, pension accounting — every quantitative topic is an application of discounting and compounding. If you understand TVM deeply, everything else falls into place.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 12. EAR
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'ear',
+    subject: 'Quantitative Methods',
+    name: 'EAR from APR',
+    tagline: 'What does your rate really cost once compounding kicks in?',
+    bigIdea: `Banks advertise a "stated" annual rate (APR). But if interest compounds monthly, you're paying interest-on-interest within the year — making your <strong>true annual cost higher than advertised</strong>. The Effective Annual Rate (EAR) strips away the marketing and tells you the real cost.`,
+    formula: `EAR = (1 + <span class="hi">APR</span>/<span class="hi2">m</span>)^<span class="hi3">m</span> − 1`,
+    vars: [
+      { sym: 'APR', def: 'Annual Percentage Rate — the stated/nominal rate' },
+      { sym: 'm', def: 'Number of compounding periods per year (12 = monthly, 365 = daily)' },
+      { sym: 'EAR', def: 'Effective Annual Rate — the true annual rate after accounting for compounding' },
+    ],
+    intuition: `12% APR compounded monthly means 1% per month. After 12 months: ₹100 × (1.01)^12 = ₹112.68 — not ₹112. That extra ₹0.68 is the compounding effect within the year. The EAR of 12.68% captures this. <strong>More frequent compounding → higher EAR → higher true cost.</strong>`,
+    pullQuote: `"Always compare investments using EAR, never APR. Two investments with the same APR but different compounding frequencies have different true returns."`,
+    connected: ['tvm', 'bond-price'],
+    inputs: [
+      { id: 'ear_apr', label: 'Stated APR', sym: 'APR', type: 'range', min: 1, max: 25, step: 0.25, val: 12, unit: '%' },
+      { id: 'ear_m', label: 'Compounding per Year', sym: 'm', type: 'range', min: 1, max: 365, step: 1, val: 12, unit: 'x/yr' },
+    ],
+    calc(v) {
+      const apr = v.ear_apr / 100, m = v.ear_m;
+      const ear = Math.pow(1 + apr / m, m) - 1;
+      const cont = Math.exp(apr) - 1;
+      const extra = (ear - apr) * 100;
+      const breakdown = `EAR = (1 + ${v.ear_apr}%/${m})^${m} − 1 = <strong>${(ear * 100).toFixed(4)}%</strong> vs APR of ${v.ear_apr}%`;
+      let compLabel = '';
+      if (m === 1) compLabel = 'Annual compounding';
+      else if (m === 2) compLabel = 'Semi-annual compounding';
+      else if (m === 4) compLabel = 'Quarterly compounding';
+      else if (m === 12) compLabel = 'Monthly compounding';
+      else if (m === 52) compLabel = 'Weekly compounding';
+      else if (m >= 360) compLabel = 'Daily compounding (near continuous)';
+      else compLabel = `${m}× per year compounding`;
+      let insight = `With <em>${compLabel}</em>, an APR of ${v.ear_apr}% becomes an EAR of <strong>${(ear * 100).toFixed(4)}%</strong>. The compounding adds an extra <strong>${extra.toFixed(4)} percentage points</strong> of true cost. For reference, continuous compounding (the theoretical maximum) at this APR would yield ${(cont * 100).toFixed(4)}%. The gap between EAR and APR narrows as you approach continuous compounding.`;
+      return { value: `EAR = ${(ear * 100).toFixed(4)}%`, label: 'Effective Annual Rate', breakdown, insight };
+    },
+    chart(v) {
+      const apr = v.ear_apr / 100;
+      const ms = [1, 2, 4, 12, 52, 365];
+      const labels = ['Annual', 'Semi-ann', 'Quarterly', 'Monthly', 'Weekly', 'Daily'];
+      const data = ms.map(m => ((Math.pow(1 + apr / m, m) - 1) * 100).toFixed(4));
+      return {
+        labels,
+        datasets: [{ label: 'EAR (%)', data, backgroundColor: 'rgba(184,134,11,0.7)', borderColor: '#b8860b', borderWidth: 1, type: 'bar' }],
+        xLabel: 'Compounding Frequency', yLabel: 'EAR (%)', caption: 'EAR increases with compounding frequency but gains slow down — daily vs monthly is tiny'
+      };
+    },
+    traps: [
+      { label: 'Periodic rate vs APR vs EAR', text: 'Periodic rate = APR/m (e.g., monthly rate = APR/12). APR = periodic rate × m (simple multiplication). EAR = (1 + periodic rate)^m − 1 (compounding). These are three different numbers — know which context calls for which.' },
+      { label: 'The ICONV worksheet on BA II Plus', text: 'For exam calculations: NOM = APR, C/Y = m (compounding periods), then CPT EFF to get EAR. For continuous compounding: EAR = e^r − 1 (use the e^x key).' },
+    ],
+    reality: `In India, RBI mandates that banks disclose the "Annualised Rate" which is equivalent to EAR. Credit card APRs of 36–42% compound monthly, making the true cost even higher. EAR is consumer protection in mathematical form.`
+  },
+
+// ══════════════════════════════════════════════════════════
+  // 13. CONVEXITY ADJUSTMENT
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'convexity',
+    subject: 'Fixed Income',
+    name: 'Convexity Adjustment',
+    tagline: 'Why duration alone underestimates price gains and overestimates losses',
+    bigIdea: `Modified Duration gives you a linear approximation of how bond prices change with yields. But the true price-yield relationship is a <strong>curve, not a straight line</strong>. That curvature is convexity. When yields move significantly, duration alone gives you the wrong answer — convexity corrects it. And the correction is always in your favour for standard bonds.`,
+    formula: `ΔP ≈ −<span class="hi">ModDur</span> × ΔYield × P + ½ × <span class="hi2">Convexity</span> × (<span class="hi3">ΔYield</span>)² × P`,
+    vars: [
+      { sym: '−ModDur × ΔYield × P', def: 'The duration effect — linear approximation of price change' },
+      { sym: '½ × Convexity × (ΔYield)²', def: 'The convexity adjustment — always positive for option-free bonds' },
+      { sym: 'Convexity', def: 'A measure of the curvature in the price-yield relationship (always positive for standard bonds)' },
+    ],
+    intuition: `Imagine driving along a curved road. Duration is like measuring your position using only your speed and direction — it works fine for short distances, but on a curve, you'll drift off the road if you don't account for the bend. Convexity is the bend. For option-free bonds, the curve always bends <strong>in the investor's favour</strong>: prices rise more than duration predicts when yields fall, and fall less than duration predicts when yields rise. This asymmetry is why convexity is a desirable property.`,
+    pullQuote: `"All else equal, a bond with higher convexity is always preferable. It outperforms a lower-convexity bond in both rising and falling yield environments."`,
+    connected: ['mod-duration', 'bond-price'],
+    inputs: [
+      { id: 'cv_moddur', label: 'Modified Duration', sym: 'ModDur', type: 'range', min: 0.5, max: 20, step: 0.5, val: 7, unit: '' },
+      { id: 'cv_conv', label: 'Convexity', sym: 'Conv', type: 'range', min: 0, max: 200, step: 5, val: 60, unit: '' },
+      { id: 'cv_dy', label: 'Yield Change', sym: 'ΔYield', type: 'range', min: -300, max: 300, step: 10, val: 100, unit: 'bps' },
+      { id: 'cv_price', label: 'Bond Price ($)', sym: 'P', type: 'number', min: 100, max: 2000, step: 10, val: 1000, unit: '$' },
+    ],
+    calc(v) {
+      const dy = v.cv_dy / 10000;
+      const dur_eff = -v.cv_moddur * dy * v.cv_price;
+      const conv_adj = 0.5 * v.cv_conv * dy * dy * v.cv_price;
+      const total = dur_eff + conv_adj;
+      const dur_only = dur_eff;
+      const new_price = v.cv_price + total;
+      const breakdown = `Duration effect: <strong>$${dur_eff.toFixed(2)}</strong> + Convexity adj: <strong>$${conv_adj.toFixed(2)}</strong> = <strong>$${total.toFixed(2)}</strong>`;
+      const direction = v.cv_dy > 0 ? 'rising' : 'falling';
+      let insight = '';
+      if (v.cv_dy === 0) {
+        insight = `No yield change, no price change. The convexity value of ${v.cv_conv} tells you: the larger the yield move you expect, the more valuable this convexity becomes. It always adds to (or reduces the loss in) your total return.`;
+      } else if (conv_adj < 0.01) {
+        insight = `With a small yield move of ${Math.abs(v.cv_dy)} bps, the convexity adjustment is tiny ($${conv_adj.toFixed(2)}). Duration's linear approximation is very accurate for small yield changes — convexity matters most for large moves of 100+ basis points.`;
+      } else if (v.cv_dy > 0) {
+        insight = `Yields <em>rising</em> by ${v.cv_dy} bps. Duration alone would predict a price drop of $${Math.abs(dur_only).toFixed(2)}, but convexity <strong>cushions the fall by $${conv_adj.toFixed(2)}</strong>. The true price drop is only $${Math.abs(total).toFixed(2)}. This is convexity working in your favour — the curve bends to reduce losses when yields rise.`;
+      } else {
+        insight = `Yields <em>falling</em> by ${Math.abs(v.cv_dy)} bps. Duration alone would predict a price gain of $${Math.abs(dur_only).toFixed(2)}, but convexity <strong>adds an extra $${conv_adj.toFixed(2)}</strong>. The true price gain is $${Math.abs(total).toFixed(2)}. This is why falling yield environments reward high-convexity bonds more than duration alone would suggest.`;
+      }
+      return { value: `ΔP ≈ $${total.toFixed(2)}`, label: `New Price: $${new_price.toFixed(2)}`, breakdown, insight };
+    },
+    chart(v) {
+      const labels = [], durOnly = [], withConv = [];
+      for (let dy = -300; dy <= 300; dy += 25) {
+        const dyD = dy / 10000;
+        const d = -v.cv_moddur * dyD * v.cv_price;
+        const c = 0.5 * v.cv_conv * dyD * dyD * v.cv_price;
+        labels.push(dy + 'bps');
+        durOnly.push((v.cv_price + d).toFixed(2));
+        withConv.push((v.cv_price + d + c).toFixed(2));
+      }
+      return {
+        labels,
+        datasets: [
+          { label: 'Duration + Convexity (true)', data: withConv, borderColor: '#2a7a4f', backgroundColor: 'rgba(42,122,79,0.06)', tension: 0.4, pointRadius: 1 },
+          { label: 'Duration only (linear)', data: durOnly, borderColor: '#c8401a', borderDash: [5, 5], tension: 0.1, pointRadius: 0, borderWidth: 1.5 },
+        ],
+        xLabel: 'Yield Change (bps)', yLabel: 'Estimated Bond Price ($)',
+        caption: 'The green curve (with convexity) always sits above the red line — higher price for any given yield move'
+      };
+    },
+    traps: [
+      { label: 'Negative convexity — callable bonds and MBS', text: 'Callable bonds and mortgage-backed securities have <strong>negative convexity</strong> near the call price. When yields fall, the issuer calls the bond back, capping your price upside. The convexity adjustment becomes negative — the bond underperforms a straight-line prediction when yields fall sharply.' },
+      { label: 'Convexity is always positive for option-free bonds', text: 'For a plain vanilla bond with no embedded options, convexity is <strong>always positive</strong> — meaning the adjustment always helps the investor, regardless of the direction of yield change. This is stated as a fact on the exam.' },
+    ],
+    reality: `Portfolio managers deliberately seek high-convexity bonds when they expect large yield moves in either direction. The trade-off: high-convexity bonds are more expensive (lower yield) because the market prices in the benefit of the favourable asymmetry.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 14. TREYNOR + JENSEN'S ALPHA
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'treynor-alpha',
+    subject: 'Portfolio Management',
+    name: 'Treynor Ratio & Jensen\'s Alpha',
+    tagline: 'Measuring performance when the portfolio is part of something bigger',
+    bigIdea: `Sharpe ratio uses total risk (σ). But if a portfolio is just one piece of a larger diversified fund, <strong>unsystematic risk doesn't matter</strong> — it's already been diversified away at the fund level. In that context, you should only measure performance relative to the <em>systematic</em> risk taken, which is exactly what Treynor and Jensen's Alpha do.`,
+    formula: `Treynor = (<span class="hi">Rp</span> − <span class="hi2">Rf</span>) / <span class="hi3">βp</span><br><small style="font-size:0.85rem">α = <span class="hi">Rp</span> − [<span class="hi2">Rf</span> + β(<span class="hi3">Rm</span>−<span class="hi2">Rf</span>)]</small>`,
+    vars: [
+      { sym: 'Treynor', def: 'Excess return per unit of systematic risk (beta) — higher is better' },
+      { sym: 'α (Alpha)', def: 'Actual return minus CAPM-predicted return — positive alpha = manager added value' },
+      { sym: 'βp', def: 'Portfolio beta — measures only the systematic market risk the portfolio took' },
+    ],
+    intuition: `Think of three workers hired to take on market risk. Treynor asks: how much did each worker earn per unit of systematic risk they absorbed? Jensen's alpha asks: did the worker earn more than CAPM said they should, given the risk they took? A positive alpha means the manager genuinely added value — they weren't just rewarded for taking on more beta. A negative alpha means they destroyed value on a risk-adjusted basis.`,
+    pullQuote: `"If Sharpe, Treynor, and Jensen give different rankings, it's because the portfolios differ in their degree of diversification. For well-diversified funds, Treynor and Jensen are the right tools."`,
+    connected: ['sharpe', 'capm', 'port-var'],
+    inputs: [
+      { id: 'tj_rp', label: 'Portfolio Return', sym: 'Rp', type: 'range', min: -5, max: 30, step: 0.5, val: 14, unit: '%' },
+      { id: 'tj_rf', label: 'Risk-Free Rate', sym: 'Rf', type: 'range', min: 0, max: 10, step: 0.25, val: 3, unit: '%' },
+      { id: 'tj_rm', label: 'Market Return', sym: 'Rm', type: 'range', min: 2, max: 20, step: 0.5, val: 10, unit: '%' },
+      { id: 'tj_beta', label: 'Portfolio Beta', sym: 'β', type: 'range', min: 0.1, max: 2.5, step: 0.1, val: 1.2, unit: '' },
+      { id: 'tj_sigma', label: 'Portfolio Std Dev', sym: 'σp', type: 'range', min: 1, max: 50, step: 0.5, val: 18, unit: '%' },
+    ],
+    calc(v) {
+      const treynor = (v.tj_rp - v.tj_rf) / v.tj_beta;
+      const capm_r = v.tj_rf + v.tj_beta * (v.tj_rm - v.tj_rf);
+      const alpha = v.tj_rp - capm_r;
+      const sharpe = (v.tj_rp - v.tj_rf) / v.tj_sigma;
+      const breakdown = `Treynor = (${v.tj_rp}%−${v.tj_rf}%) / ${v.tj_beta} = <strong>${treynor.toFixed(3)}</strong> | α = ${v.tj_rp}%−${capm_r.toFixed(2)}% = <strong>${alpha.toFixed(2)}%</strong>`;
+      let insight = '';
+      if (alpha > 0 && treynor > (v.tj_rm - v.tj_rf)) {
+        insight = `<em>Positive alpha of ${alpha.toFixed(2)}%</em> — the manager earned more than CAPM predicted for the systematic risk taken. Treynor of ${treynor.toFixed(3)} exceeds the market's Treynor of ${(v.tj_rm - v.tj_rf).toFixed(2)}, confirming strong risk-adjusted performance. Compare to Sharpe (${sharpe.toFixed(3)}) — if Treynor is stronger relative to benchmark, the portfolio has <strong>less diversifiable risk than average</strong>.`;
+      } else if (alpha < 0) {
+        insight = `<em>Negative alpha of ${alpha.toFixed(2)}%</em> — the manager underperformed their CAPM expectation. Despite taking ${v.tj_beta}× market risk, the actual return of ${v.tj_rp}% fell short of the CAPM-required ${capm_r.toFixed(2)}%. The portfolio <strong>destroyed risk-adjusted value</strong>.`;
+      } else {
+        insight = `Alpha of ${alpha.toFixed(2)}% and Treynor of ${treynor.toFixed(3)}. The portfolio is performing in line with what the market would expect for its level of systematic risk. True skill shows as <em>consistent positive alpha</em> over time — a single period is inconclusive.`;
+      }
+      return { value: `Treynor = ${treynor.toFixed(3)}`, label: `Jensen's α = ${alpha.toFixed(2)}%`, breakdown, insight };
+    },
+    chart(v) {
+      const betas = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5];
+      const sml = betas.map(b => (v.tj_rf + b * (v.tj_rm - v.tj_rf)).toFixed(2));
+      const portPoint = betas.map(b => b === Math.round(v.tj_beta * 4) / 4 ? v.tj_rp : null);
+      return {
+        labels: betas.map(b => 'β=' + b),
+        datasets: [
+          { label: 'Security Market Line', data: sml, borderColor: '#2d6a9f', backgroundColor: 'rgba(45,106,159,0.06)', tension: 0.1, pointRadius: 3 },
+        ],
+        xLabel: 'Beta (β)', yLabel: 'Return (%)',
+        caption: 'Assets above the SML have positive alpha (undervalued); below have negative alpha (overvalued)'
+      };
+    },
+    traps: [
+      { label: 'Which metric to use — the key rule', text: '<strong>Standalone portfolio → use Sharpe</strong> (total risk matters). <strong>Portfolio that is one component of a larger fund → use Treynor or Jensen\'s Alpha</strong> (only systematic risk matters). The exam will specify the context — read it carefully.' },
+      { label: 'Same beta does not mean same ranking', text: 'If two portfolios have the same beta, Treynor and Jensen\'s Alpha will give the <strong>same ranking</strong>. If they have different betas, Treynor (a ratio) and Alpha (an absolute number) can give different rankings — and both can differ from Sharpe.' },
+    ],
+    reality: `Jensen's Alpha is the most commonly cited measure of active manager skill in academic finance. Decades of research have found that most active fund managers have negative alpha after fees — meaning passive index funds systematically outperform on a risk-adjusted basis.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 15. LIFO TO FIFO
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'lifo-fifo',
+    subject: 'Financial Statement Analysis',
+    name: 'LIFO to FIFO Adjustment',
+    tagline: 'Making two companies comparable when they use different inventory methods',
+    bigIdea: `LIFO and FIFO are two different ways of accounting for the same physical inventory. In rising price environments, they produce <strong>dramatically different financial statements</strong> — different costs of goods sold, different profits, different taxes, different balance sheet values. Before you compare any two companies, you must ensure they're on the same accounting basis. The LIFO reserve is the bridge.`,
+    formula: `FIFO NI = LIFO NI + <span class="hi">ΔLIFO Reserve</span> × (1 − <span class="hi2">t</span>)`,
+    vars: [
+      { sym: 'LIFO Reserve', def: 'The cumulative difference between FIFO and LIFO inventory on the balance sheet (disclosed in footnotes)' },
+      { sym: 'ΔLIFO Reserve', def: 'Change in LIFO reserve during the period = LIFO Reserve (end) − LIFO Reserve (begin)' },
+      { sym: '(1−t)', def: 'Tax adjustment — FIFO profits are higher, so taxes would have been higher too; net of tax gives comparable NI' },
+    ],
+    intuition: `In a world of rising prices, LIFO says "I sold my most recently purchased (expensive) inventory first." This gives you high COGS, low gross profit, and lower taxes. FIFO says "I sold my oldest (cheap) inventory first." This gives you low COGS, high gross profit, and higher taxes. The LIFO reserve is exactly the cumulative inventory understatement on the balance sheet — adding it back to inventory and adjusting for taxes converts everything to FIFO as if the company had always used FIFO.`,
+    pullQuote: `"The LIFO reserve is one of the most information-rich numbers in a US company's footnotes. It tells you exactly how much reported profits have been understated relative to FIFO."`,
+    connected: ['dupont', 'eps'],
+    inputs: [
+      { id: 'lf_lifo_ni', label: 'LIFO Net Income ($)', sym: 'LIFO NI', type: 'number', min: 0, max: 1000000, step: 5000, val: 200000, unit: '$' },
+      { id: 'lf_res_beg', label: 'LIFO Reserve (Beginning)', sym: 'Res₀', type: 'number', min: 0, max: 500000, step: 1000, val: 40000, unit: '$' },
+      { id: 'lf_res_end', label: 'LIFO Reserve (Ending)', sym: 'Res₁', type: 'number', min: 0, max: 500000, step: 1000, val: 55000, unit: '$' },
+      { id: 'lf_t', label: 'Tax Rate', sym: 't', type: 'range', min: 0, max: 50, step: 1, val: 25, unit: '%' },
+    ],
+    calc(v) {
+      const delta_res = v.lf_res_end - v.lf_res_beg;
+      const fifo_ni = v.lf_lifo_ni + delta_res * (1 - v.lf_t / 100);
+      const fifo_inv = v.lf_res_end; // FIFO inventory = LIFO inventory + ending reserve
+      const diff = fifo_ni - v.lf_lifo_ni;
+      const breakdown = `ΔLIFO Reserve = $${v.lf_res_end.toLocaleString()} − $${v.lf_res_beg.toLocaleString()} = <strong>$${delta_res.toLocaleString()}</strong> | FIFO NI = $${v.lf_lifo_ni.toLocaleString()} + $${delta_res.toLocaleString()} × (1−${v.lf_t}%) = <strong>$${fifo_ni.toLocaleString()}</strong>`;
+      let insight = '';
+      if (delta_res > 0) {
+        insight = `The LIFO reserve <em>increased by $${delta_res.toLocaleString()}</em> this period — prices are rising. LIFO charged more expensive recent inventory to COGS, depressing reported profits. Converting to FIFO adds back <strong>$${diff.toLocaleString()}</strong> to net income (after tax). The FIFO NI of $${fifo_ni.toLocaleString()} is <em>${((diff / v.lf_lifo_ni) * 100).toFixed(1)}% higher</em> than LIFO NI — a meaningful difference for comparison purposes.`;
+      } else if (delta_res < 0) {
+        insight = `The LIFO reserve <em>decreased by $${Math.abs(delta_res).toLocaleString()}</em> — this is a "LIFO liquidation." Prices may be falling, or the company sold more than it bought. When the reserve shrinks, LIFO actually shows <strong>higher profits than FIFO</strong> in that period. FIFO NI of $${fifo_ni.toLocaleString()} is lower than LIFO NI — the opposite of the usual relationship.`;
+      } else {
+        insight = `The LIFO reserve is unchanged — prices were stable this period. LIFO and FIFO produce the <strong>same income</strong> when prices don't change. The reserve accumulated in prior periods ($${v.lf_res_end.toLocaleString()}) still represents a cumulative balance sheet understatement of inventory.`;
+      }
+      return { value: `FIFO NI = $${fifo_ni.toLocaleString()}`, label: `LIFO NI = $${v.lf_lifo_ni.toLocaleString()}`, breakdown, insight };
+    },
+    traps: [
+      { label: 'Balance sheet adjustments too', text: 'Don\'t forget to adjust the balance sheet: <strong>FIFO Inventory = LIFO Inventory + LIFO Reserve</strong>. And <strong>FIFO Retained Earnings = LIFO Retained Earnings + LIFO Reserve × (1−t)</strong>. The full conversion affects both the income statement and balance sheet.' },
+      { label: 'IFRS prohibits LIFO entirely', text: 'This is a favourite exam fact: <strong>IFRS does not permit LIFO</strong>. Only US GAAP allows it. So if you\'re comparing a US company (LIFO possible) with a European company (IFRS, FIFO only), you must always adjust the US company to FIFO for a valid comparison.' },
+    ],
+    reality: `Analysts at investment banks routinely perform LIFO-to-FIFO adjustments when comparing US manufacturers and retailers. Companies like ExxonMobil and GM have LIFO reserves in the billions — the adjustment materially changes their apparent profitability and balance sheet strength.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 16. FCFE / FCFF
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'fcfe-fcff',
+    subject: 'Equity Valuation',
+    name: 'FCFE & FCFF',
+    tagline: 'What cash does the business actually generate for its owners?',
+    bigIdea: `Earnings (net income) can be manipulated through accounting choices. <strong>Free cash flow cannot be faked as easily</strong> — it is the actual cash a business produces after paying for everything it needs to grow. FCFF is cash available to all capital providers. FCFE is what remains specifically for equity holders. These are the building blocks of the most rigorous equity valuation models.`,
+    formula: `FCFE = <span class="hi">NI</span> + NCC − FCInv − WCInv + <span class="hi2">Net Borrowing</span><br><small style="font-size:0.85rem">FCFF = NI + NCC + <span class="hi3">Int×(1−t)</span> − FCInv − WCInv</small>`,
+    vars: [
+      { sym: 'NCC', def: 'Non-cash charges like depreciation — added back because they reduced NI but involved no cash outflow' },
+      { sym: 'FCInv', def: 'Fixed capital investment (capex minus disposals) — cash spent maintaining or growing the asset base' },
+      { sym: 'WCInv', def: 'Working capital investment — an increase in net working capital consumes cash' },
+      { sym: 'Net Borrowing', def: 'New debt raised minus debt repaid — only in FCFE because debt providers are already separated out' },
+    ],
+    intuition: `Start with net income. Add back depreciation (it reduced NI but no cash left the building). Subtract capex (real cash spent on equipment). Subtract working capital growth (cash tied up in receivables and inventory). For FCFE, also add net new borrowing (debt raised on behalf of equity holders). What remains is the <strong>true cash the business generated that can be returned to shareholders</strong> — through dividends, buybacks, or retained for growth.`,
+    pullQuote: `"FCFF is discounted at WACC to get enterprise value. FCFE is discounted at the cost of equity to get equity value. The two approaches must give the same answer — if they don't, you made an error."`,
+    connected: ['ggm', 'wacc', 'npv'],
+    inputs: [
+      { id: 'fc_ni', label: 'Net Income ($)', sym: 'NI', type: 'number', min: 0, max: 500000, step: 5000, val: 100000, unit: '$' },
+      { id: 'fc_ncc', label: 'Depreciation & Amortisation ($)', sym: 'NCC', type: 'number', min: 0, max: 100000, step: 1000, val: 20000, unit: '$' },
+      { id: 'fc_fcinv', label: 'Capex net of disposals ($)', sym: 'FCInv', type: 'number', min: 0, max: 200000, step: 5000, val: 30000, unit: '$' },
+      { id: 'fc_wcinv', label: 'Working Capital Investment ($)', sym: 'WCInv', type: 'number', min: 0, max: 50000, step: 1000, val: 5000, unit: '$' },
+      { id: 'fc_nb', label: 'Net Borrowing ($)', sym: 'NB', type: 'number', min: -50000, max: 100000, step: 1000, val: 10000, unit: '$' },
+      { id: 'fc_int', label: 'Interest Expense ($)', sym: 'Int', type: 'number', min: 0, max: 50000, step: 1000, val: 8000, unit: '$' },
+      { id: 'fc_t', label: 'Tax Rate', sym: 't', type: 'range', min: 0, max: 50, step: 1, val: 25, unit: '%' },
+    ],
+    calc(v) {
+      const fcfe = v.fc_ni + v.fc_ncc - v.fc_fcinv - v.fc_wcinv + v.fc_nb;
+      const fcff = v.fc_ni + v.fc_ncc + v.fc_int * (1 - v.fc_t / 100) - v.fc_fcinv - v.fc_wcinv;
+      const reinvRate = ((v.fc_fcinv + v.fc_wcinv - v.fc_ncc) / v.fc_ni * 100).toFixed(1);
+      const breakdown = `FCFE: $${v.fc_ni.toLocaleString()} + $${v.fc_ncc.toLocaleString()} − $${v.fc_fcinv.toLocaleString()} − $${v.fc_wcinv.toLocaleString()} + $${v.fc_nb.toLocaleString()} = <strong>$${fcfe.toLocaleString()}</strong><br>FCFF: FCFE + Int×(1−t) − Net Borrowing = <strong>$${fcff.toLocaleString()}</strong>`;
+      let insight = '';
+      if (fcfe < 0) {
+        insight = `FCFE is <em>negative ($${fcfe.toLocaleString()})</em> — the company is consuming more cash than it generates for equity holders. This is common for high-growth companies investing heavily in capex. It is not inherently bad if the investments earn above cost of capital, but it means the company <strong>cannot pay dividends without borrowing</strong>.`;
+      } else if (fcfe > v.fc_ni) {
+        insight = `FCFE ($${fcfe.toLocaleString()}) exceeds net income ($${v.fc_ni.toLocaleString()}) — this happens when <em>depreciation exceeds capex</em>, meaning the company is under-investing relative to its accounting charges. This can signal a mature, capital-light business, or a company not maintaining its asset base.`;
+      } else {
+        insight = `FCFE of <strong>$${fcfe.toLocaleString()}</strong> vs FCFF of <strong>$${fcff.toLocaleString()}</strong>. The gap between FCFF and FCFE is the after-tax interest cost less net borrowing — this is the slice that goes to <em>debt holders</em>. Reinvestment rate is approximately ${reinvRate}% of net income, which tells you how capital-intensive this business is.`;
+      }
+      return { value: `FCFE = $${fcfe.toLocaleString()}`, label: `FCFF = $${fcff.toLocaleString()}`, breakdown, insight };
+    },
+    traps: [
+      { label: 'WCInv is a cash outflow when it increases', text: 'An <strong>increase</strong> in working capital (e.g., receivables or inventory grows) is a <strong>cash use</strong> — subtract it. A decrease in WC is a cash source — add it back. Students often get the sign wrong.' },
+      { label: 'NCC includes depreciation but also others', text: 'Non-cash charges include depreciation, amortisation, deferred taxes, and stock-based compensation. All are added back to NI because they reduced accounting profit without reducing actual cash. The exam often tests whether you know which items qualify.' },
+    ],
+    reality: `Warren Buffett famously focuses on "owner earnings" — essentially FCFE — rather than reported net income when valuing businesses. He argues that the ability to generate cash, not accounting profits, is what ultimately determines a company's worth.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 17. FORWARD PRICING
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'forward-price',
+    subject: 'Derivatives',
+    name: 'Forward Pricing',
+    tagline: 'The no-arbitrage price of an asset delivered in the future',
+    bigIdea: `A forward contract locks in a price today for buying or selling an asset in the future. What should that price be? Exactly the amount where neither party gets a free lunch. If the forward price deviated from this level, an arbitrageur would immediately exploit it — so <strong>no-arbitrage logic pins the forward price precisely</strong>. This is the first principle of all derivatives pricing.`,
+    formula: `F₀ = <span class="hi">S₀</span> × (1+<span class="hi2">r</span>)^<span class="hi3">T</span>`,
+    vars: [
+      { sym: 'F₀', def: 'The no-arbitrage forward price agreed today for delivery at time T' },
+      { sym: 'S₀', def: 'Current spot price of the underlying asset' },
+      { sym: 'r', def: 'Risk-free rate for the period (the "cost of carry")' },
+      { sym: 'T', def: 'Time to delivery in years' },
+    ],
+    intuition: `Here's why the formula must hold: if you want the asset at time T, you have two choices. Option 1: Buy it today for S₀ and hold it — but this ties up capital earning the risk-free rate. Option 2: Enter a forward contract and invest S₀ in T-bills instead. For no-arbitrage, these must cost the same. So the fair forward price equals the spot price <strong>compounded at the risk-free rate</strong> for the holding period — this is the cost of carry.`,
+    pullQuote: `"If the actual forward price is higher than F₀, sell the forward and buy the spot (cash-and-carry). If lower, buy the forward and short the spot (reverse cash-and-carry). Both produce risk-free profit."`,
+    connected: ['put-call', 'tvm'],
+    inputs: [
+      { id: 'fp_s', label: 'Spot Price S₀ ($)', sym: 'S₀', type: 'range', min: 10, max: 500, step: 5, val: 100, unit: '$' },
+      { id: 'fp_r', label: 'Risk-Free Rate', sym: 'r', type: 'range', min: 0, max: 15, step: 0.25, val: 5, unit: '%' },
+      { id: 'fp_t', label: 'Time to Delivery (years)', sym: 'T', type: 'range', min: 0.1, max: 5, step: 0.1, val: 1, unit: 'yr' },
+      { id: 'fp_benefit', label: 'PV of Benefits (dividends etc.) ($)', sym: 'PV(Ben)', type: 'number', min: 0, max: 50, step: 0.5, val: 0, unit: '$' },
+      { id: 'fp_cost', label: 'PV of Costs (storage etc.) ($)', sym: 'PV(Cost)', type: 'number', min: 0, max: 50, step: 0.5, val: 0, unit: '$' },
+    ],
+    calc(v) {
+      const base = (v.fp_s - v.fp_benefit + v.fp_cost);
+      const F = base * Math.pow(1 + v.fp_r / 100, v.fp_t);
+      const F_simple = v.fp_s * Math.pow(1 + v.fp_r / 100, v.fp_t);
+      const carry_cost = F_simple - v.fp_s;
+      const breakdown = `F₀ = ($${v.fp_s} − $${v.fp_benefit} + $${v.fp_cost}) × (1+${v.fp_r}%)^${v.fp_t} = <strong>$${F.toFixed(2)}</strong>`;
+      let insight = '';
+      const premium = ((F / v.fp_s - 1) * 100).toFixed(2);
+      if (v.fp_benefit > 0) {
+        insight = `Benefits (dividends/coupons worth $${v.fp_benefit}) <em>reduce the forward price</em> because the seller gives them up by holding the asset. The forward buyer doesn't receive them, so the agreed price is lower. Forward price of <strong>$${F.toFixed(2)}</strong> is ${premium}% ${F > v.fp_s ? 'above' : 'below'} spot.`;
+      } else if (v.fp_cost > 0) {
+        insight = `Storage or insurance costs of $${v.fp_cost} <em>increase the forward price</em> — the seller must be compensated for bearing those costs during the holding period. The forward of <strong>$${F.toFixed(2)}</strong> reflects both the cost of carry ($${carry_cost.toFixed(2)}) and storage costs.`;
+      } else {
+        insight = `The forward price of <strong>$${F.toFixed(2)}</strong> is ${premium}% above the spot price of $${v.fp_s}. This premium equals the cost of carry — the risk-free return earned by investing $${v.fp_s} for ${v.fp_t} year(s). If the actual forward traded at any other price, an arbitrageur would exploit the gap instantly.`;
+      }
+      return { value: `F₀ = $${F.toFixed(2)}`, label: `Cost of carry: $${(F - v.fp_s).toFixed(2)}`, breakdown, insight };
+    },
+    chart(v) {
+      const ts = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 5];
+      const base = v.fp_s - v.fp_benefit + v.fp_cost;
+      return {
+        labels: ts.map(t => t + ' yr'),
+        datasets: [
+          { label: 'Forward Price', data: ts.map(t => (base * Math.pow(1 + v.fp_r / 100, t)).toFixed(2)), borderColor: '#b8860b', backgroundColor: 'rgba(184,134,11,0.06)', tension: 0.3, pointRadius: 4 },
+          { label: 'Spot Price', data: ts.map(() => v.fp_s), borderColor: '#aaaaaa', borderDash: [5, 5], pointRadius: 0, borderWidth: 1.5 },
+        ],
+        xLabel: 'Time to Delivery (years)', yLabel: 'Price ($)',
+        caption: 'Forward price rises above spot as time to delivery increases — reflecting the growing cost of carry'
+      };
+    },
+    traps: [
+      { label: 'Benefits reduce the forward price; costs increase it', text: 'If the underlying pays dividends or coupons (benefits to the holder), the forward buyer misses out — so the forward price is <strong>reduced</strong> by PV(benefits). Storage or insurance costs are borne by the holder, so the forward buyer must pay for them — forward price is <strong>increased</strong> by PV(costs).' },
+      { label: 'Value of a forward contract after initiation', text: 'At initiation, a forward contract has zero value. After time passes, its value changes: <strong>Long forward value = S_t − F₀/(1+r)^(T−t)</strong>. The current spot minus the PV of the original forward price. This is distinct from the forward price itself.' },
+    ],
+    reality: `Forward contracts are used everywhere in global finance — currency forwards for hedging FX risk, commodity forwards for farmers and airlines, equity forwards for institutions. Every futures contract traded on an exchange is a standardised, exchange-traded version of a forward agreement.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 18. BAYES' FORMULA
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'bayes',
+    subject: 'Quantitative Methods',
+    name: "Bayes' Formula",
+    tagline: 'How new information should rationally update your beliefs',
+    bigIdea: `You start with a belief about the probability of something (the <em>prior</em>). Then new evidence arrives. Bayes' formula tells you precisely <strong>how much to update your belief</strong> given that evidence. It is the mathematical foundation of rational inference under uncertainty — and one of the most intellectually beautiful ideas in all of probability theory.`,
+    formula: `P(A|B) = <span class="hi">P(B|A)</span> × <span class="hi2">P(A)</span> / <span class="hi3">P(B)</span>`,
+    vars: [
+      { sym: 'P(A)', def: 'Prior probability — your belief about A before seeing the evidence' },
+      { sym: 'P(B|A)', def: 'Likelihood — the probability of observing B if A is true' },
+      { sym: 'P(B)', def: 'Total probability of B — computed as P(B|A)×P(A) + P(B|Aᶜ)×P(Aᶜ)' },
+      { sym: 'P(A|B)', def: 'Posterior probability — your updated belief about A after observing B' },
+    ],
+    intuition: `Imagine a medical test for a rare disease. The disease affects 1% of people. The test is 95% accurate. You test positive. What is the probability you actually have the disease? Most people instinctively say "95%." The correct answer, via Bayes, is only about 16%. Why? Because the test generates many false positives on the vast 99% of healthy people, drowning out the true positives. <strong>Without updating for the prior probability of the disease, you dramatically overstate the risk.</strong> This counterintuitive result is why Bayes matters.`,
+    pullQuote: `"Bayes' theorem is the mathematical embodiment of open-mindedness — it tells you exactly how to change your mind in proportion to the strength of new evidence."`,
+    connected: ['tvm'],
+    inputs: [
+      { id: 'bay_pa', label: 'Prior P(A) — base rate', sym: 'P(A)', type: 'range', min: 1, max: 99, step: 1, val: 30, unit: '%' },
+      { id: 'bay_pba', label: 'P(B|A) — signal if A is true', sym: 'P(B|A)', type: 'range', min: 1, max: 99, step: 1, val: 80, unit: '%' },
+      { id: 'bay_pbna', label: 'P(B|Aᶜ) — false positive rate', sym: 'P(B|Aᶜ)', type: 'range', min: 1, max: 99, step: 1, val: 20, unit: '%' },
+    ],
+    calc(v) {
+      const pa = v.bay_pa / 100;
+      const pba = v.bay_pba / 100;
+      const pbna = v.bay_pbna / 100;
+      const pna = 1 - pa;
+      const pb = pba * pa + pbna * pna;
+      const paob = pba * pa / pb;
+      const update = ((paob - pa) * 100).toFixed(1);
+      const breakdown = `P(B) = ${v.bay_pba}%×${v.bay_pa}% + ${v.bay_pbna}%×${100 - v.bay_pa}% = <strong>${(pb * 100).toFixed(2)}%</strong> | P(A|B) = <strong>${(paob * 100).toFixed(2)}%</strong>`;
+      const direction = paob > pa ? 'increased' : 'decreased';
+      const strength = Math.abs(paob - pa) / pa;
+      let insight = '';
+      if (strength < 0.1) {
+        insight = `The evidence B is <em>almost equally likely</em> whether or not A is true — so it barely updates your belief. Prior: ${v.bay_pa}% → Posterior: <strong>${(paob * 100).toFixed(1)}%</strong>. Weak signals that are nearly as likely under A or not-A provide almost no information.`;
+      } else if (paob > pa) {
+        insight = `Observing B <em>increases</em> the probability of A from ${v.bay_pa}% to <strong>${(paob * 100).toFixed(1)}%</strong> — an update of +${update} percentage points. The signal is informative because B is ${(pba / pbna).toFixed(1)}× more likely when A is true than when it isn't. The stronger this ratio, the more Bayesian updating occurs.`;
+      } else {
+        insight = `Observing B actually <em>decreases</em> the probability of A from ${v.bay_pa}% to <strong>${(paob * 100).toFixed(1)}%</strong>. This seems paradoxical — B occurred, but A became less likely? Yes: when B is more likely when A is <em>false</em>, observing B is evidence against A. This is the power of rigorous Bayesian reasoning.`;
+      }
+      return { value: `P(A|B) = ${(paob * 100).toFixed(2)}%`, label: `Prior was ${v.bay_pa}%`, breakdown, insight };
+    },
+    chart(v) {
+      const pba = v.bay_pba / 100, pbna = v.bay_pbna / 100;
+      const priors = Array.from({ length: 20 }, (_, i) => (i + 1) * 5);
+      const posteriors = priors.map(p => {
+        const pa = p / 100, pna = 1 - pa;
+        const pb = pba * pa + pbna * pna;
+        return (pba * pa / pb * 100).toFixed(1);
+      });
+      return {
+        labels: priors.map(p => p + '%'),
+        datasets: [
+          { label: 'Posterior P(A|B)', data: posteriors, borderColor: '#2d6a9f', backgroundColor: 'rgba(45,106,159,0.08)', tension: 0.4, pointRadius: 3 },
+          { label: 'Prior = Posterior (no update)', data: priors.map(p => p.toFixed(1)), borderColor: '#aaaaaa', borderDash: [5, 5], pointRadius: 0, borderWidth: 1.5 },
+        ],
+        xLabel: 'Prior P(A)', yLabel: 'Posterior P(A|B)',
+        caption: 'When the curve lies above the diagonal, observing B is positive evidence for A. Below = negative evidence.'
+      };
+    },
+    traps: [
+      { label: 'Always compute P(B) using total probability', text: 'P(B) must account for <strong>all ways B can occur</strong>: P(B) = P(B|A)×P(A) + P(B|Aᶜ)×P(Aᶜ). A common error is using P(B|A) alone in the denominator — this ignores false positives and gives an answer that is too high.' },
+      { label: 'The base rate matters enormously', text: 'Even a very accurate signal provides weak evidence when the prior probability (base rate) is very low. If the base rate is 1%, even a 95% accurate test gives a posterior of only ~16%. <strong>Always consider the base rate</strong> before interpreting conditional probabilities.' },
+    ],
+    reality: `Bayes' theorem is used everywhere in modern finance: spam filters, credit scoring models, fraud detection, and quantitative trading strategies all rely on Bayesian updating. In medicine, doctors are taught to think in prior probabilities and likelihoods to avoid diagnostic errors like the one in the intuition example above.`
+  },
+
+];
+
+// =====================================================================
+// SUBJECTS FOR NAV
+// =====================================================================
+const SUBJECTS = ['All', 'Portfolio Management', 'Fixed Income', 'Equity Valuation', 'Corporate Finance', 'Derivatives', 'Quantitative Methods', 'Financial Statement Analysis'];
+
+let activeId = null;
+let activeSubject = 'All';
+let visited = new Set();
+let activeCharts = {};
+
+// =====================================================================
+// BUILD NAV PILLS
+// =====================================================================
+const navEl = document.getElementById('navPills');
+SUBJECTS.forEach(s => {
+  const btn = document.createElement('button');
+  btn.className = 'nav-pill' + (s === 'All' ? ' active' : '');
+  btn.textContent = s === 'All' ? 'All Topics' : s;
+  btn.addEventListener('click', () => {
+    activeSubject = s;
+    document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderSidebar();
+  });
+  navEl.appendChild(btn);
+});
+
+// =====================================================================
+// BUILD SIDEBAR
+// =====================================================================
+function renderSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const filtered = CONCEPTS.filter(c => activeSubject === 'All' || c.subject === activeSubject);
+
+  // Group by subject
+  const groups = {};
+  filtered.forEach(c => {
+    if (!groups[c.subject]) groups[c.subject] = [];
+    groups[c.subject].push(c);
+  });
+
+  let html = '';
+  Object.entries(groups).forEach(([subj, items]) => {
+    html += `<div class="sidebar-section">
+      <div class="sidebar-section-title">${subj}</div>`;
+    items.forEach(c => {
+      html += `<div class="formula-card ${activeId === c.id ? 'active' : ''} ${visited.has(c.id) ? 'visited' : ''}" data-id="${c.id}">
+        <div class="fc-name">${c.name}</div>
+        <div class="fc-tagline">${c.tagline}</div>
+        <div class="fc-dot"></div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  // Keep progress strip
+  const progress = `<div class="progress-strip">
+    <span id="progressLabel">${visited.size} / ${CONCEPTS.length} visited</span>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill" style="width:${(visited.size / CONCEPTS.length * 100).toFixed(0)}%"></div></div>
+  </div>`;
+
+  sidebar.innerHTML = html + progress;
+  sidebar.querySelectorAll('.formula-card').forEach(el => {
+    el.addEventListener('click', () => loadConcept(el.dataset.id));
+  });
+}
+
+// =====================================================================
+// LOAD CONCEPT
+// =====================================================================
+function loadConcept(id) {
+  activeId = id;
+  visited.add(id);
+  renderSidebar();
+
+  const c = CONCEPTS.find(x => x.id === id);
+  if (!c) return;
+
+  document.getElementById('emptyState').style.display = 'none';
+
+  // Remove old panel
+  const oldPanel = document.getElementById('active-panel');
+  if (oldPanel) oldPanel.remove();
+  if (activeCharts['main']) { activeCharts['main'].destroy(); activeCharts['main'] = null; }
+
+  const panel = document.createElement('div');
+  panel.id = 'active-panel';
+  panel.className = 'concept-panel active';
+
+  // Build vars html
+  const varsHtml = c.vars.map(v =>
+    `<div class="fr-var-pill"><span>${v.sym}</span>${v.def}</div>`
+  ).join('');
+
+  // Build inputs html
+  const inputsHtml = c.inputs.map(inp => {
+    if (inp.type === 'range') {
+      return `<div class="slider-group">
+        <div class="sg-label">${inp.label} <span class="sg-sym">${inp.sym}</span></div>
+        <input type="range" id="${inp.id}" min="${inp.min}" max="${inp.max}" step="${inp.step}" value="${inp.val}">
+        <div class="sg-val" id="${inp.id}_val">${inp.val}${inp.unit}</div>
+      </div>`;
+    } else {
+      return `<div class="slider-group">
+        <div class="sg-label">${inp.label} <span class="sg-sym">${inp.sym}</span></div>
+        <input type="number" id="${inp.id}" min="${inp.min}" max="${inp.max}" step="${inp.step}" value="${inp.val}">
+      </div>`;
+    }
+  }).join('');
+
+  // Build connected pills
+  const connectedHtml = c.connected ? c.connected.map(cid => {
+    const linked = CONCEPTS.find(x => x.id === cid);
+    return linked ? `<div class="connected-pill" data-id="${cid}">${linked.name}</div>` : '';
+  }).join('') : '';
+
+  // Build traps html
+  const trapsHtml = (c.traps || []).map(t =>
+    `<div class="trap-box"><div class="trap-header">⚠ Common Exam Trap: ${t.label}</div><p>${t.text}</p></div>`
+  ).join('');
+
+  panel.innerHTML = `
+    <div class="cp-hero">
+      <div class="subject-tag">${c.subject}</div>
+      <h2>${c.name}</h2>
+      <div class="big-idea">${c.bigIdea}</div>
+    </div>
+
+    <div class="formula-reveal">
+      <div class="fr-label">The Formula — and what it means</div>
+      <div class="fr-equation">${c.formula}</div>
+      <div class="fr-vars">${varsHtml}</div>
+    </div>
+
+    <div class="cp-body">
+
+      <div class="concept-block">
+        <h3><span class="section-icon">💡</span> The Intuition</h3>
+        <p>${c.intuition}</p>
+        <div class="pull-quote">${c.pullQuote}</div>
+      </div>
+
+      <div class="lab-section">
+        <div class="lab-title">Interactive Lab</div>
+        <div class="lab-subtitle">Adjust inputs — watch what changes and why</div>
+        <div class="sliders-grid">${inputsHtml}</div>
+        <div class="result-card">
+          <div>
+            <div class="rc-label" id="rc-label">Result</div>
+            <div class="rc-value" id="rc-value">—</div>
+          </div>
+          <div class="rc-breakdown" id="rc-breakdown">Adjust inputs above to see calculation breakdown</div>
+        </div>
+        <div class="live-insight">
+          <span class="li-prefix">What this means in plain English</span>
+          <span id="live-insight-text">Adjust the sliders above to see a real-world interpretation update here.</span>
+        </div>
+      </div>
+
+      ${c.chart ? `<div class="lab-section">
+        <div class="lab-title">Visual Understanding</div>
+        <div class="lab-subtitle">How the relationship behaves across a range</div>
+        <div class="chart-wrap">
+          <canvas id="formulaChart" height="220"></canvas>
+          <div class="chart-caption" id="chartCaption"></div>
+        </div>
+      </div>` : ''}
+
+      <div class="concept-block">
+        <h3><span class="section-icon">⚠</span> Exam Traps & Common Mistakes</h3>
+        ${trapsHtml}
+      </div>
+
+      <div class="concept-block">
+        <h3><span class="section-icon">🌍</span> Real-World Context</h3>
+        <div class="reality-box"><strong>Why this matters beyond the exam: </strong>${c.reality}</div>
+      </div>
+
+      ${connectedHtml ? `<div class="concept-block">
+        <h3><span class="section-icon">🔗</span> Connected Concepts</h3>
+        <p>These formulas work together with ${c.name}. Understanding the connections deepens your intuition.</p>
+        <div class="connected">${connectedHtml}</div>
+      </div>` : ''}
+
+    </div>
+  `;
+
+  document.getElementById('main').appendChild(panel);
+  document.getElementById('main').scrollTop = 0;
+
+  // Wire up inputs
+  c.inputs.forEach(inp => {
+    const el = document.getElementById(inp.id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      if (inp.type === 'range') {
+        document.getElementById(inp.id + '_val').textContent = el.value + inp.unit;
+      }
+      updateCalc(c);
+    });
+    el.addEventListener('change', () => updateCalc(c));
+  });
+
+  // Wire connected pills
+  panel.querySelectorAll('.connected-pill').forEach(pill => {
+    pill.addEventListener('click', () => loadConcept(pill.dataset.id));
+  });
+
+  updateCalc(c);
+}
+
+function getVals(c) {
+  const v = {};
+  c.inputs.forEach(inp => {
+    const el = document.getElementById(inp.id);
+    v[inp.id] = el ? (parseFloat(el.value) || 0) : inp.val;
+  });
+  return v;
+}
+
+function updateCalc(c) {
+  try {
+    const v = getVals(c);
+    const result = c.calc(v);
+    document.getElementById('rc-value').textContent = result.value;
+    document.getElementById('rc-label').textContent = result.label;
+    document.getElementById('rc-breakdown').innerHTML = result.breakdown;
+    document.getElementById('live-insight-text').innerHTML = result.insight;
+    if (c.chart) renderChart(c, v);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function renderChart(c, v) {
+  const ctx = document.getElementById('formulaChart');
+  if (!ctx) return;
+  if (activeCharts['main']) { activeCharts['main'].destroy(); activeCharts['main'] = null; }
+  const data = c.chart(v);
+  document.getElementById('chartCaption').textContent = data.caption || '';
+  activeCharts['main'] = new Chart(ctx, {
+    type: data.type || 'line',
+    data: { labels: data.labels, datasets: data.datasets },
+    options: {
+      responsive: true,
+      animation: { duration: 300 },
+      plugins: {
+        legend: { labels: { color: '#7a7890', font: { family: 'Outfit', size: 11 }, boxWidth: 20 } }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#7a7890', font: { size: 10 }, maxTicksLimit: 10 },
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          title: { display: true, text: data.xLabel, color: '#7a7890', font: { size: 11 } }
+        },
+        y: {
+          ticks: { color: '#7a7890', font: { size: 10 } },
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          title: { display: true, text: data.yLabel, color: '#7a7890', font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// Init
+renderSidebar();
+</script>
+</body>
+</html>
