@@ -583,7 +583,7 @@ body::before {
   <div class="sidebar" id="sidebar">
     <!-- filled by JS -->
     <div class="progress-strip">
-      <span id="progressLabel">0 / 18 concepts visited</span>
+      <span id="progressLabel">0 / 28 concepts visited</span>
       <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
     </div>
   </div>
@@ -1679,12 +1679,669 @@ const CONCEPTS = [
     reality: `Bayes' theorem is used everywhere in modern finance: spam filters, credit scoring models, fraud detection, and quantitative trading strategies all rely on Bayesian updating. In medicine, doctors are taught to think in prior probabilities and likelihoods to avoid diagnostic errors like the one in the intuition example above.`
   },
 
+
+// ══════════════════════════════════════════════════════════
+  // 19. YTM / YTC / YTW
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'ytm-ytc-ytw',
+    subject: 'Fixed Income',
+    name: 'YTM, YTC & YTW',
+    tagline: 'What return does this bond actually promise you?',
+    bigIdea: `A bond's coupon rate tells you what the issuer promised to pay when the bond was issued. The <strong>yield to maturity (YTM)</strong> tells you what return you'd actually earn if you bought the bond today at its current market price and held it until it matures. These are almost always different numbers — and the difference is the entire story of how bond markets work.`,
+    formula: `Price = Σ [<span class="hi">C</span> / (1+<span class="hi2">YTM</span>/2)^t] + [<span class="hi3">FV</span> / (1+YTM/2)^n]`,
+    vars: [
+      { sym: 'YTM', def: 'Yield to Maturity — the single discount rate that makes the PV of all cash flows equal the current price. Solve iteratively (or use BA II Plus).' },
+      { sym: 'YTC', def: 'Yield to Call — same calculation but substitute the call price for face value and the call date for maturity' },
+      { sym: 'YTW', def: 'Yield to Worst — the lowest of YTM, YTC, and any other yield to call date. The true floor on your return.' },
+      { sym: 'C', def: 'Coupon payment per period (annual coupon ÷ 2 for semiannual)' },
+    ],
+    intuition: `Think of YTM as the bond market's answer to "what interest rate am I really getting on this investment?" If you pay more than face value for a bond, your YTM will be lower than the coupon rate — you're overpaying for those cash flows. If you pay less than face value, your YTM will be higher — you're getting a bargain. The coupon rate is fixed forever; the YTM moves every time the price moves. YTC matters because callable bonds give the issuer the right to redeem early — usually when rates fall, which is exactly when you don't want to lose the bond. YTW is what a cautious investor quotes because it tells you: in the worst case, what am I guaranteed to earn?`,
+    pullQuote: `"The coupon rate is the issuer's promise from the past. The YTM is the market's verdict on that promise today."`,
+    connected: ['bond-price', 'mod-duration', 'convexity'],
+    inputs: [
+      { id: 'ytm_price', label: 'Current Bond Price ($)', sym: 'Price', type: 'range', min: 700, max: 1300, step: 10, val: 950, unit: '$' },
+      { id: 'ytm_fv', label: 'Face Value ($)', sym: 'FV', type: 'number', min: 1000, max: 1000, step: 0, val: 1000, unit: '$' },
+      { id: 'ytm_coupon', label: 'Annual Coupon Rate', sym: 'c%', type: 'range', min: 0, max: 15, step: 0.25, val: 6, unit: '%' },
+      { id: 'ytm_years', label: 'Years to Maturity', sym: 'n', type: 'range', min: 1, max: 30, step: 1, val: 10, unit: 'yrs' },
+      { id: 'ytm_callprice', label: 'Call Price ($)', sym: 'CP', type: 'number', min: 1000, max: 1100, step: 5, val: 1050, unit: '$' },
+      { id: 'ytm_callyears', label: 'Years to Call', sym: 'nc', type: 'range', min: 1, max: 10, step: 1, val: 3, unit: 'yrs' },
+    ],
+    calc(v) {
+      // Solve YTM numerically (Newton's method)
+      const n = v.ytm_years * 2;
+      const c = (v.ytm_coupon / 100 * v.ytm_fv) / 2;
+      const price = v.ytm_price;
+      let ytm = 0.05;
+      for (let i = 0; i < 100; i++) {
+        const r = ytm / 2;
+        let pv = 0, dpv = 0;
+        for (let t = 1; t <= n; t++) {
+          pv += c / Math.pow(1 + r, t);
+          dpv -= t * c / Math.pow(1 + r, t + 1);
+        }
+        pv += v.ytm_fv / Math.pow(1 + r, n);
+        dpv -= n * v.ytm_fv / Math.pow(1 + r, n + 1);
+        const diff = pv - price;
+        if (Math.abs(diff) < 0.0001) break;
+        ytm -= diff / (dpv * 0.5);
+      }
+      // YTC
+      const nc = v.ytm_callyears * 2;
+      let ytc = 0.05;
+      for (let i = 0; i < 100; i++) {
+        const r = ytc / 2;
+        let pv = 0, dpv = 0;
+        for (let t = 1; t <= nc; t++) {
+          pv += c / Math.pow(1 + r, t);
+          dpv -= t * c / Math.pow(1 + r, t + 1);
+        }
+        pv += v.ytm_callprice / Math.pow(1 + r, nc);
+        dpv -= nc * v.ytm_callprice / Math.pow(1 + r, nc + 1);
+        const diff = pv - price;
+        if (Math.abs(diff) < 0.0001) break;
+        ytc -= diff / (dpv * 0.5);
+      }
+      const ytw = Math.min(ytm, ytc);
+      const breakdown = `YTM = <strong>${(ytm * 100).toFixed(3)}%</strong> | YTC = <strong>${(ytc * 100).toFixed(3)}%</strong> | YTW = <strong>${(ytw * 100).toFixed(3)}%</strong>`;
+      let insight = '';
+      const coupon = v.ytm_coupon;
+      if (v.ytm_price < v.ytm_fv) {
+        insight = `Bond is trading at a <em>discount</em> ($${v.ytm_price} < $${v.ytm_fv}), so YTM of <strong>${(ytm * 100).toFixed(2)}%</strong> is <em>above</em> the coupon rate of ${coupon}%. You're buying future cash flows cheaply — the price appreciation to par adds to your return. YTW is ${(ytw * 100).toFixed(2)}% — in the worst case (if called early at $${v.ytm_callprice}), that's still your guaranteed floor.`;
+      } else if (v.ytm_price > v.ytm_fv) {
+        insight = `Bond is trading at a <em>premium</em> ($${v.ytm_price} > $${v.ytm_fv}), so YTM of <strong>${(ytm * 100).toFixed(2)}%</strong> is <em>below</em> the coupon rate of ${coupon}%. You're paying extra for those above-market coupons — the price decline to par at maturity reduces your overall return. YTW of ${(ytw * 100).toFixed(2)}% is your real floor.`;
+      } else {
+        insight = `Bond is trading at <em>par</em> — price equals face value. In this special case, YTM equals exactly the coupon rate of ${coupon}%. This is the baseline relationship: par price = coupon rate = YTM. Any deviation from par immediately drives a wedge between the coupon rate and the YTM.`;
+      }
+      return { value: `YTM = ${(ytm * 100).toFixed(3)}%`, label: `YTW = ${(ytw * 100).toFixed(3)}%`, breakdown, insight };
+    },
+    chart(v) {
+      const prices = [];
+      const ytms = [];
+      for (let p = 700; p <= 1300; p += 30) {
+        const n = v.ytm_years * 2;
+        const c = (v.ytm_coupon / 100 * v.ytm_fv) / 2;
+        let ytm = 0.05;
+        for (let i = 0; i < 100; i++) {
+          const r = ytm / 2;
+          let pv = 0, dpv = 0;
+          for (let t = 1; t <= n; t++) { pv += c / Math.pow(1+r,t); dpv -= t*c/Math.pow(1+r,t+1); }
+          pv += v.ytm_fv / Math.pow(1+r,n); dpv -= n*v.ytm_fv/Math.pow(1+r,n+1);
+          const diff = pv - p; if (Math.abs(diff) < 0.001) break;
+          ytm -= diff / (dpv * 0.5);
+        }
+        prices.push(p);
+        ytms.push((ytm * 100).toFixed(3));
+      }
+      return {
+        labels: prices.map(p => '$' + p),
+        datasets: [{ label: 'YTM (%)', data: ytms, borderColor: '#b8860b', backgroundColor: 'rgba(184,134,11,0.06)', tension: 0.4, pointRadius: 2 }],
+        xLabel: 'Bond Price ($)', yLabel: 'YTM (%)',
+        caption: 'As price rises, YTM falls — the fundamental inverse relationship between bond prices and yields'
+      };
+    },
+    traps: [
+      { label: 'YTM assumes reinvestment at the same rate', text: 'YTM implicitly assumes every coupon you receive is reinvested at the same YTM rate. In reality this rarely happens, so the realised return often differs from the stated YTM. This reinvestment risk is higher for longer-maturity, higher-coupon bonds.' },
+      { label: 'For callable bonds, always quote YTW not YTM', text: 'When a bond has call features, quoting YTM is misleading because it ignores the possibility of early redemption. <strong>YTW is the more conservative and honest measure</strong> because it reflects the worst-case scenario from the investor\'s perspective.' },
+    ],
+    reality: `When you see a bond quoted at "yield 4.85%", that's the YTM. Every bond trading desk in the world runs this same iterative calculation hundreds of thousands of times per day. The BA II Plus does it for you in the exam: enter N, I/Y, PV, PMT, FV and compute the missing variable.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 20. SPOT RATES & FORWARD RATES
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'spot-forward',
+    subject: 'Fixed Income',
+    name: 'Spot Rates & Forward Rates',
+    tagline: 'The yield curve is made of two different kinds of rates — do you know which is which?',
+    bigIdea: `A <strong>spot rate</strong> is the yield on a zero-coupon bond maturing at a specific date — a pure, unambiguous rate for lending money from today until that date. A <strong>forward rate</strong> is the rate implied for a future lending period — what the market is pricing in for, say, the one-year rate two years from now. These two are linked by a powerful no-arbitrage relationship: you should earn the same return whether you invest for two years outright, or invest for one year and then roll over at the implied forward rate.`,
+    formula: `(1 + <span class="hi">S₂</span>)² = (1 + <span class="hi2">S₁</span>) × (1 + <span class="hi3">₁f₁</span>)`,
+    vars: [
+      { sym: 'Sₙ', def: 'Spot rate for n years — the all-in yield from today to year n, no coupons' },
+      { sym: '₁f₁', def: 'One-year forward rate, one year from now — the rate implied between year 1 and year 2' },
+      { sym: 'No-arbitrage', def: 'Two paths to the same destination must cost the same — otherwise someone profits for free' },
+    ],
+    intuition: `Imagine you want to park $1,000 for two years. You have two equivalent choices. First, invest at the 2-year spot rate and lock in your return today. Second, invest at the 1-year spot rate, and then at whatever the 1-year rate turns out to be in year two. If markets are efficient, these must give you identical outcomes — otherwise everyone would pile into the better option until prices adjusted. The forward rate is exactly the future 1-year rate that makes these two choices identical. It is the market's <strong>implied forecast of future short-term rates</strong>, embedded in the shape of the yield curve.`,
+    pullQuote: `"A steep upward-sloping yield curve implies that forward rates are above current spot rates — the market expects short-term rates to rise. An inverted curve implies the opposite."`,
+    connected: ['bond-price', 'ytm-ytc-ytw', 'forward-price'],
+    inputs: [
+      { id: 'sf_s1', label: '1-Year Spot Rate S₁', sym: 'S₁', type: 'range', min: 0.5, max: 10, step: 0.25, val: 3, unit: '%' },
+      { id: 'sf_s2', label: '2-Year Spot Rate S₂', sym: 'S₂', type: 'range', min: 0.5, max: 10, step: 0.25, val: 4, unit: '%' },
+      { id: 'sf_s3', label: '3-Year Spot Rate S₃', sym: 'S₃', type: 'range', min: 0.5, max: 10, step: 0.25, val: 4.5, unit: '%' },
+    ],
+    calc(v) {
+      const s1 = v.sf_s1 / 100, s2 = v.sf_s2 / 100, s3 = v.sf_s3 / 100;
+      const f1_1 = ((Math.pow(1 + s2, 2) / (1 + s1)) - 1) * 100;
+      const f1_2 = ((Math.pow(1 + s3, 3) / Math.pow(1 + s2, 2)) - 1) * 100;
+      const f2_1 = ((Math.pow(1 + s3, 3) / (1 + s1)) - 1) / 2 * 100; // approx 2yr fwd from yr1
+      const breakdown = `₁f₁ = (1+${v.sf_s2}%)²/(1+${v.sf_s1}%) − 1 = <strong>${f1_1.toFixed(3)}%</strong> | ₂f₁ = <strong>${f1_2.toFixed(3)}%</strong>`;
+      let insight = '';
+      if (v.sf_s2 > v.sf_s1) {
+        insight = `The yield curve is <em>upward sloping</em> (S₂ ${v.sf_s2}% > S₁ ${v.sf_s1}%). This means the implied forward rate of <strong>${f1_1.toFixed(2)}%</strong> is <em>above</em> today's 1-year spot rate — the market is pricing in rising short-term rates. A steep curve implies strong expected rate increases ahead.`;
+      } else if (v.sf_s2 < v.sf_s1) {
+        insight = `The yield curve is <em>inverted</em> (S₂ ${v.sf_s2}% < S₁ ${v.sf_s1}%). The implied forward rate of <strong>${f1_1.toFixed(2)}%</strong> is <em>below</em> today's 1-year spot rate — the market expects short-term rates to <em>fall</em>. An inverted curve has historically been a reliable recession signal because it reflects expectations of future rate cuts.`;
+      } else {
+        insight = `The yield curve is <em>flat</em> — S₁ and S₂ are equal at ${v.sf_s1}%. The implied forward rate equals the current spot rate (${f1_1.toFixed(2)}%), meaning the market expects no change in short-term rates. A flat curve often appears during transitions between rising and falling rate environments.`;
+      }
+      return { value: `₁f₁ = ${f1_1.toFixed(3)}%`, label: `₂f₁ = ${f1_2.toFixed(3)}%`, breakdown, insight };
+    },
+    chart(v) {
+      const s1 = v.sf_s1 / 100, s2 = v.sf_s2 / 100, s3 = v.sf_s3 / 100;
+      const f11 = (Math.pow(1+s2,2)/(1+s1) - 1) * 100;
+      const f12 = (Math.pow(1+s3,3)/Math.pow(1+s2,2) - 1) * 100;
+      return {
+        labels: ['Year 1', 'Year 2', 'Year 3'],
+        datasets: [
+          { label: 'Spot Rates', data: [v.sf_s1, v.sf_s2, v.sf_s3], borderColor: '#2d6a9f', backgroundColor: 'rgba(45,106,159,0.08)', tension: 0.3, pointRadius: 5 },
+          { label: 'Implied Forward Rates', data: [v.sf_s1, f11.toFixed(3), f12.toFixed(3)], borderColor: '#b8860b', borderDash: [5,5], backgroundColor: 'rgba(184,134,11,0.04)', tension: 0.3, pointRadius: 5 },
+        ],
+        xLabel: 'Maturity', yLabel: 'Rate (%)',
+        caption: 'When the spot curve slopes up, forward rates lie above it — the market implies future rates will be higher'
+      };
+    },
+    traps: [
+      { label: 'Spot rates are not the same as YTM', text: 'YTM is a single blended rate for a coupon-paying bond. Spot rates are pure rates for each individual cash flow date. To value a bond precisely, you discount each cash flow at its own spot rate — this is called the "arbitrage-free" valuation approach.' },
+      { label: 'Forward rates are expectations, not guarantees', text: 'The forward rate tells you what the market has <strong>priced in</strong> for future rates — not what rates will actually be. Realised rates frequently differ from implied forward rates. What matters for the exam is understanding how to calculate and interpret them, not predicting the future.' },
+    ],
+    reality: `Central banks around the world monitor the yield curve shape obsessively. When the US 2-year/10-year spread inverts (the 2-year yield rises above the 10-year), it has preceded every US recession in the past 50 years — because it signals the market expects future short-term rates (and thus the economy) to be weaker than current ones.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 21. Z-SCORES & CONFIDENCE INTERVALS
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'z-score-ci',
+    subject: 'Quantitative Methods',
+    name: 'Z-Scores & Confidence Intervals',
+    tagline: 'How many standard deviations away is this result — and should you be surprised?',
+    bigIdea: `A z-score answers one simple question: <strong>how unusual is this observation?</strong> It converts any measurement into a universal currency — standard deviations from the mean — so you can compare results across completely different distributions. Confidence intervals flip this logic around: instead of asking "how unusual is this point?", they ask "given this sample, where does the true population value probably lie?"`,
+    formula: `z = (<span class="hi">X</span> − <span class="hi2">μ</span>) / <span class="hi3">σ</span> &nbsp;&nbsp; CI: <span class="hi2">X̄</span> ± z × (<span class="hi3">σ</span>/√n)`,
+    vars: [
+      { sym: 'z', def: 'Number of standard deviations the observation lies from the mean' },
+      { sym: 'X̄ ± z×(σ/√n)', def: 'Confidence interval — the range likely containing the true population mean' },
+      { sym: 'σ/√n', def: 'Standard error — how much sample means vary around the true mean; shrinks as sample size grows' },
+      { sym: 'z critical values', def: '90% CI → z=1.645 | 95% CI → z=1.960 | 99% CI → z=2.576' },
+    ],
+    intuition: `Think of a z-score as a translator. You have a test score of 72, the class average is 65, and the standard deviation is 10. Your z-score is (72−65)/10 = 0.7 — you scored 0.7 standard deviations above average. Now you can compare this to a completely different exam with different scales. A z-score of 0 means perfectly average. A z-score of 2 means you're in approximately the top 2.3% of the distribution. For confidence intervals — imagine you weigh a random sample of 100 people and get an average of 70kg with a standard deviation of 15kg. A 95% CI says: if you repeated this sampling process thousands of times, 95% of the intervals you construct this way would capture the true population mean.`,
+    pullQuote: `"A 95% confidence interval does NOT mean there's a 95% probability the true mean falls inside it — the true mean is fixed, not random. It means the interval construction process captures the true mean 95% of the time."`,
+    connected: ['bayes', 'hyp-test'],
+    inputs: [
+      { id: 'z_x', label: 'Observed Value X', sym: 'X', type: 'range', min: 0, max: 200, step: 1, val: 115, unit: '' },
+      { id: 'z_mu', label: 'Population Mean μ', sym: 'μ', type: 'range', min: 0, max: 200, step: 1, val: 100, unit: '' },
+      { id: 'z_sigma', label: 'Standard Deviation σ', sym: 'σ', type: 'range', min: 1, max: 50, step: 1, val: 15, unit: '' },
+      { id: 'z_n', label: 'Sample Size n', sym: 'n', type: 'range', min: 1, max: 500, step: 10, val: 100, unit: '' },
+      { id: 'z_conf', label: 'Confidence Level', sym: 'CI%', type: 'range', min: 90, max: 99, step: 4.5, val: 95, unit: '%' },
+    ],
+    calc(v) {
+      const z = (v.z_x - v.z_mu) / v.z_sigma;
+      const se = v.z_sigma / Math.sqrt(v.z_n);
+      const zcrit = v.z_conf >= 99 ? 2.576 : v.z_conf >= 95 ? 1.960 : 1.645;
+      const margin = zcrit * se;
+      const lo = (v.z_mu - margin).toFixed(2);
+      const hi = (v.z_mu + margin).toFixed(2);
+      // Approximate percentile
+      const absZ = Math.abs(z);
+      const pct = absZ > 3 ? 99.9 : absZ > 2.576 ? 99 : absZ > 1.96 ? 97.5 : absZ > 1.645 ? 95 : absZ > 1.28 ? 90 : absZ > 1 ? 84 : absZ > 0.5 ? 69 : 50;
+      const tail = z > 0 ? `top ${(100 - pct).toFixed(1)}%` : `bottom ${(100 - pct).toFixed(1)}%`;
+      const breakdown = `z = (${v.z_x}−${v.z_mu})/${v.z_sigma} = <strong>${z.toFixed(3)}</strong> | ${v.z_conf}% CI: [<strong>${lo}, ${hi}</strong>]`;
+      let insight = '';
+      if (Math.abs(z) < 1) {
+        insight = `A z-score of <strong>${z.toFixed(2)}</strong> is well within one standard deviation of the mean — this is a <em>completely ordinary</em> result. About 68% of all observations fall within ±1σ. Nothing statistically remarkable here. The ${v.z_conf}% confidence interval of [${lo}, ${hi}] reflects the precision of a sample size of ${v.z_n}.`;
+      } else if (Math.abs(z) < 2) {
+        insight = `A z-score of <strong>${z.toFixed(2)}</strong> puts this observation in approximately the ${tail} of the distribution — moderately unusual but not extreme. About 95% of observations fall within ±2σ, so this is outside the "ordinary" range but not shocking. With a sample of ${v.z_n}, your ${v.z_conf}% CI is [${lo}, ${hi}].`;
+      } else {
+        insight = `A z-score of <strong>${z.toFixed(2)}</strong> is in the ${tail} — this is a statistically <em>unusual</em> result. Less than 5% of observations from this distribution would be this extreme. In hypothesis testing, a |z| > 1.96 at 95% confidence would lead you to <strong>reject the null hypothesis</strong>. The ${v.z_conf}% CI of [${lo}, ${hi}] is your estimate of where the true mean lies.`;
+      }
+      return { value: `z = ${z.toFixed(3)}`, label: `${v.z_conf}% CI: [${lo}, ${hi}]`, breakdown, insight };
+    },
+    chart(v) {
+      const zcrit = v.z_conf >= 99 ? 2.576 : v.z_conf >= 95 ? 1.960 : 1.645;
+      const zobs = (v.z_x - v.z_mu) / v.z_sigma;
+      const pts = [];
+      const ys = [];
+      for (let z = -4; z <= 4; z += 0.2) {
+        pts.push(z.toFixed(1));
+        ys.push((Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI)).toFixed(4));
+      }
+      return {
+        labels: pts,
+        datasets: [
+          { label: 'Normal Distribution', data: ys, borderColor: '#2d6a9f', backgroundColor: 'rgba(45,106,159,0.08)', tension: 0.4, pointRadius: 0 },
+        ],
+        xLabel: 'Z-score', yLabel: 'Probability Density',
+        caption: `Critical values: ±1.645 (90%), ±1.96 (95%), ±2.576 (99%) | Your z = ${zobs.toFixed(2)}`
+      };
+    },
+    traps: [
+      { label: 'Wider CI does not mean more precise', text: 'A 99% CI is <em>wider</em> than a 95% CI — it captures the true mean more reliably, but the range of values it includes is larger. More confidence = less precision. This is a fundamental trade-off: you cannot simultaneously have high confidence and a narrow interval without increasing your sample size.' },
+      { label: 'Use z for large samples, t for small ones', text: 'When the population standard deviation is unknown and the sample size is small (n < 30), use the <strong>t-distribution</strong> instead of the z-distribution. The t-distribution has fatter tails to reflect the additional uncertainty from estimating σ from the sample. As n grows, t approaches z.' },
+    ],
+    reality: `Every clinical drug trial, every quality control process in manufacturing, and every A/B test run by a technology company uses confidence intervals to decide whether an observed effect is real or just random noise. The 95% threshold (z = 1.96) is the most widely used standard in science and business — it's the line between "interesting finding" and "publishable result."`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 22. HYPOTHESIS TESTING
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'hyp-test',
+    subject: 'Quantitative Methods',
+    name: 'Hypothesis Testing',
+    tagline: 'Is this result real, or just random noise?',
+    bigIdea: `Hypothesis testing is the formal process for deciding whether an observed result is <strong>statistically significant</strong> — genuinely caused by something real — or just a chance fluctuation you'd expect from random sampling. The entire framework is built around one counter-intuitive but powerful idea: you don't try to prove your hypothesis directly. Instead, you assume it's wrong (the null hypothesis), then ask: if it really were wrong, how likely would I be to see results this extreme just by chance?`,
+    formula: `t = (<span class="hi">X̄</span> − <span class="hi2">μ₀</span>) / (<span class="hi3">s</span>/√n) &nbsp; reject H₀ if |t| > t<sub>critical</sub>`,
+    vars: [
+      { sym: 'H₀', def: 'Null hypothesis — the "no effect" baseline you are trying to disprove' },
+      { sym: 'H₁', def: 'Alternative hypothesis — what you believe is actually true' },
+      { sym: 'p-value', def: 'Probability of observing results this extreme if H₀ were true — smaller means stronger evidence against H₀' },
+      { sym: 'Type I error (α)', def: 'Rejecting H₀ when it is actually true — a false positive. The significance level α is the probability of this error.' },
+      { sym: 'Type II error (β)', def: 'Failing to reject H₀ when it is actually false — a false negative. Power = 1−β.' },
+    ],
+    intuition: `Imagine you're testing whether a fund manager has genuine skill or is just getting lucky. Your null hypothesis is "no skill — returns are random." You observe that the manager beat the benchmark 8 out of 10 years. The test asks: if the manager truly had no skill (50/50 chance each year), what's the probability of getting 8 or more wins out of 10 just by luck? If that probability is very small (below your significance level of 5%), you reject the null — the result is too unlikely to be pure luck, so skill is the more plausible explanation. If the probability is large, you cannot reject the null — the result is consistent with luck, so you have no evidence of skill.`,
+    pullQuote: `"You never prove the null hypothesis false with certainty — you either reject it (strong evidence against it) or fail to reject it (insufficient evidence against it). Absence of evidence is not evidence of absence."`,
+    connected: ['z-score-ci', 'bayes', 'regression'],
+    inputs: [
+      { id: 'ht_xbar', label: 'Sample Mean X̄', sym: 'X̄', type: 'range', min: 0, max: 20, step: 0.5, val: 12, unit: '%' },
+      { id: 'ht_mu0', label: 'Null Hypothesis Value μ₀', sym: 'μ₀', type: 'range', min: 0, max: 20, step: 0.5, val: 10, unit: '%' },
+      { id: 'ht_s', label: 'Sample Std Dev s', sym: 's', type: 'range', min: 0.5, max: 20, step: 0.5, val: 5, unit: '%' },
+      { id: 'ht_n', label: 'Sample Size n', sym: 'n', type: 'range', min: 5, max: 500, step: 5, val: 100, unit: '' },
+      { id: 'ht_alpha', label: 'Significance Level α', sym: 'α', type: 'range', min: 1, max: 10, step: 1, val: 5, unit: '%' },
+    ],
+    calc(v) {
+      const t = (v.ht_xbar - v.ht_mu0) / (v.ht_s / Math.sqrt(v.ht_n));
+      const tcrit = v.ht_alpha <= 1 ? 2.576 : v.ht_alpha <= 5 ? 1.960 : 1.645;
+      const reject = Math.abs(t) > tcrit;
+      const breakdown = `t = (${v.ht_xbar}% − ${v.ht_mu0}%) / (${v.ht_s}%/√${v.ht_n}) = <strong>${t.toFixed(3)}</strong> | Critical value: ±${tcrit} | <strong>${reject ? 'REJECT H₀' : 'FAIL TO REJECT H₀'}</strong>`;
+      let insight = '';
+      if (reject) {
+        insight = `Test statistic of <strong>${t.toFixed(2)}</strong> exceeds the critical value of ±${tcrit} at the ${v.ht_alpha}% significance level — <em>reject the null hypothesis</em>. The sample mean of ${v.ht_xbar}% is statistically significantly different from the hypothesised value of ${v.ht_mu0}%. The probability of observing a difference this large by pure chance (if H₀ were true) is below ${v.ht_alpha}%. This constitutes evidence of a real effect, not random noise.`;
+      } else {
+        insight = `Test statistic of <strong>${t.toFixed(2)}</strong> does not exceed the critical value of ±${tcrit} at the ${v.ht_alpha}% significance level — <em>fail to reject the null hypothesis</em>. This does NOT mean H₀ is true — it means you have <em>insufficient evidence</em> to conclude otherwise. Consider: with a larger sample size (currently ${v.ht_n}), the test would become more powerful and might detect a real difference.`;
+      }
+      return {
+        value: `t = ${t.toFixed(3)}`,
+        label: reject ? '→ Reject H₀' : '→ Fail to Reject H₀',
+        breakdown, insight
+      };
+    },
+    chart(v) {
+      const tcrit = v.ht_alpha <= 1 ? 2.576 : v.ht_alpha <= 5 ? 1.960 : 1.645;
+      const tobs = (v.ht_xbar - v.ht_mu0) / (v.ht_s / Math.sqrt(v.ht_n));
+      const pts = [], ys = [];
+      for (let t = -4; t <= 4; t += 0.2) {
+        pts.push(t.toFixed(1));
+        ys.push((Math.exp(-0.5*t*t)/Math.sqrt(2*Math.PI)).toFixed(4));
+      }
+      return {
+        labels: pts,
+        datasets: [{ label: 't-distribution', data: ys, borderColor: '#2a7a4f', backgroundColor: 'rgba(42,122,79,0.07)', tension: 0.4, pointRadius: 0 }],
+        xLabel: 't statistic', yLabel: 'Density',
+        caption: `Critical values ±${tcrit} | Your t-stat = ${tobs.toFixed(2)} | ${Math.abs(tobs) > tcrit ? 'In rejection region ✓' : 'In acceptance region'}`
+      };
+    },
+    traps: [
+      { label: 'Type I vs Type II errors — always keep them straight', text: '<strong>Type I (α)</strong>: You reject H₀ but it was actually true — a false alarm. The significance level α is the probability of this. <strong>Type II (β)</strong>: You fail to reject H₀ but it was actually false — a miss. Reducing α (making the test stricter) increases β — you cannot reduce both errors simultaneously without increasing sample size.' },
+      { label: 'Statistical significance ≠ economic significance', text: 'With a very large sample size, even a tiny, economically irrelevant difference can become statistically significant. A fund returning 10.001% vs a benchmark of 10.000% might be statistically significant with enough data — but the 0.001% difference has no practical meaning. Always ask: is the magnitude of the effect meaningful, not just whether it\'s non-zero?' },
+    ],
+    reality: `The CFA exam loves testing the logic of Type I and Type II errors and the relationship between significance level, power, and sample size. In investment research, hypothesis testing is used to evaluate whether a trading strategy's historical returns are genuinely superior or just the product of data mining and luck.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 23. LINEAR REGRESSION
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'regression',
+    subject: 'Quantitative Methods',
+    name: 'Linear Regression',
+    tagline: 'Quantifying the relationship between two variables — and how much you can trust it',
+    bigIdea: `Linear regression is the tool for answering: <strong>"When X changes by one unit, how much does Y change on average?"</strong> In finance, this is everywhere — how much does a stock move when the market moves (beta is literally a regression slope), how does a company's revenue change with GDP, how do bond yields relate to inflation? Regression gives you the number, but more importantly it tells you how <em>reliable</em> that number is through R² and the standard error.`,
+    formula: `Y = <span class="hi">b₀</span> + <span class="hi2">b₁</span>X + ε &nbsp;&nbsp; b₁ = <span class="hi3">Cov(X,Y)</span> / Var(X)`,
+    vars: [
+      { sym: 'b₀', def: 'Intercept — the predicted value of Y when X = 0' },
+      { sym: 'b₁', def: 'Slope — the change in Y for a one-unit increase in X. This is the key parameter of interest.' },
+      { sym: 'R²', def: 'Coefficient of determination — the proportion of Y\'s variation explained by X. Ranges from 0 to 1.' },
+      { sym: 'SEE', def: 'Standard error of the estimate — the typical size of the regression\'s prediction errors' },
+    ],
+    intuition: `Imagine plotting the annual returns of a stock against the market's annual returns over 10 years. Each year is a dot. Regression draws the single straight line that fits those dots best — minimising the total squared distance from each dot to the line. The slope of that line tells you how the stock moves with the market (its beta). R² tells you how tightly the dots cluster around that line — if it's 0.85, then 85% of the stock's return variation is explained by the market, and only 15% is due to company-specific factors. A high R² means the model is a good fit; a low R² means X doesn't explain much of Y's behaviour.`,
+    pullQuote: `"R² of 1 means perfect prediction — every dot sits exactly on the line. R² of 0 means the line is useless — knowing X tells you nothing about Y. Most real financial relationships sit somewhere messy in between."`,
+    connected: ['capm', 'hyp-test', 'z-score-ci'],
+    inputs: [
+      { id: 'reg_b0', label: 'Intercept b₀', sym: 'b₀', type: 'range', min: -5, max: 5, step: 0.5, val: 1, unit: '%' },
+      { id: 'reg_b1', label: 'Slope b₁ (beta)', sym: 'b₁', type: 'range', min: -2, max: 3, step: 0.1, val: 1.2, unit: '' },
+      { id: 'reg_x', label: 'Market Return X', sym: 'X', type: 'range', min: -20, max: 30, step: 1, val: 10, unit: '%' },
+      { id: 'reg_r2', label: 'R² of the model', sym: 'R²', type: 'range', min: 0.1, max: 1, step: 0.05, val: 0.75, unit: '' },
+      { id: 'reg_see', label: 'Std Error of Estimate', sym: 'SEE', type: 'range', min: 0.5, max: 15, step: 0.5, val: 4, unit: '%' },
+    ],
+    calc(v) {
+      const yhat = v.reg_b0 + v.reg_b1 * v.reg_x;
+      const ci_lo = (yhat - 1.96 * v.reg_see).toFixed(2);
+      const ci_hi = (yhat + 1.96 * v.reg_see).toFixed(2);
+      const unexplained = ((1 - v.reg_r2) * 100).toFixed(0);
+      const breakdown = `Ŷ = ${v.reg_b0}% + ${v.reg_b1} × ${v.reg_x}% = <strong>${yhat.toFixed(2)}%</strong> | R² = ${v.reg_r2} | 95% Prediction Interval: [${ci_lo}%, ${ci_hi}%]`;
+      let insight = '';
+      if (v.reg_r2 >= 0.8) {
+        insight = `R² of <strong>${v.reg_r2}</strong> means X explains <em>${(v.reg_r2*100).toFixed(0)}%</em> of the variation in Y — a strong fit. When the market returns ${v.reg_x}%, the model predicts a stock return of <strong>${yhat.toFixed(2)}%</strong>. The slope of ${v.reg_b1} means for every 1% the market moves, this stock moves ${v.reg_b1}% on average. Only ${unexplained}% of the stock's movement is explained by other factors.`;
+      } else if (v.reg_r2 >= 0.4) {
+        insight = `R² of <strong>${v.reg_r2}</strong> means X explains ${(v.reg_r2*100).toFixed(0)}% of Y's variation — a moderate fit. The predicted return of <strong>${yhat.toFixed(2)}%</strong> carries meaningful uncertainty: a 95% prediction interval of [${ci_lo}%, ${ci_hi}%] is quite wide, reflecting an SEE of ${v.reg_see}%. This is typical for individual stock regressions against the market.`;
+      } else {
+        insight = `R² of <strong>${v.reg_r2}</strong> — X explains only ${(v.reg_r2*100).toFixed(0)}% of Y's variation. The model technically produces a prediction of ${yhat.toFixed(2)}%, but with a 95% interval of [${ci_lo}%, ${ci_hi}%] and ${unexplained}% unexplained variance, you should have <em>low confidence</em> in this prediction. Additional explanatory variables would likely improve the model significantly.`;
+      }
+      return { value: `Ŷ = ${yhat.toFixed(2)}%`, label: `R² = ${v.reg_r2}`, breakdown, insight };
+    },
+    chart(v) {
+      const xs = Array.from({length: 11}, (_, i) => -10 + i*4);
+      const line = xs.map(x => (v.reg_b0 + v.reg_b1 * x).toFixed(2));
+      const upper = xs.map(x => (v.reg_b0 + v.reg_b1 * x + 1.96*v.reg_see).toFixed(2));
+      const lower = xs.map(x => (v.reg_b0 + v.reg_b1 * x - 1.96*v.reg_see).toFixed(2));
+      return {
+        labels: xs.map(x => x + '%'),
+        datasets: [
+          { label: 'Regression line (Ŷ)', data: line, borderColor: '#2d6a9f', tension: 0.1, pointRadius: 3 },
+          { label: '95% Prediction Band (upper)', data: upper, borderColor: 'rgba(184,134,11,0.4)', borderDash: [3,3], pointRadius: 0, borderWidth: 1 },
+          { label: '95% Prediction Band (lower)', data: lower, borderColor: 'rgba(184,134,11,0.4)', borderDash: [3,3], pointRadius: 0, borderWidth: 1 },
+        ],
+        xLabel: 'Market Return X (%)', yLabel: 'Predicted Stock Return Y (%)',
+        caption: 'The dashed lines show the 95% prediction interval — the realistic range of outcomes for any given X'
+      };
+    },
+    traps: [
+      { label: 'Correlation does not imply causation', text: 'A high R² or a significant slope coefficient does not mean X causes Y. Ice cream sales and drowning rates are highly correlated (both peak in summer), but ice cream does not cause drowning. Always think about the economic mechanism, not just the statistical fit.' },
+      { label: 'The slope is not the correlation coefficient', text: 'b₁ (slope) and r (correlation) are different. The slope tells you the magnitude of the relationship in original units. The correlation tells you the strength and direction on a −1 to +1 scale. They are related by: b₁ = r × (σy/σx). R² = r², the squared correlation.' },
+    ],
+    reality: `The CAPM beta that every Bloomberg terminal displays for every stock in the world is simply the slope coefficient from regressing the stock's excess returns against the market's excess returns. Literally a regression b₁. The R² of that regression tells you how much of the stock's risk is systematic (market-driven) versus idiosyncratic (company-specific).`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 24. P/E RATIO
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'pe-ratio',
+    subject: 'Equity Valuation',
+    name: 'P/E Ratio & Justified P/E',
+    tagline: 'How many years of earnings are you paying for this stock?',
+    bigIdea: `The price-to-earnings ratio is the most widely quoted valuation metric in equity markets. At its surface it's simple: how much are investors paying per dollar of earnings? But the real power comes from understanding what <strong>drives</strong> the P/E — growth expectations, required return, and payout policy. The CFA exam tests the "justified P/E" — the P/E that is theoretically warranted given a company's fundamentals.`,
+    formula: `P/E = <span class="hi">P₀</span> / <span class="hi2">E₁</span> &nbsp;&nbsp; Justified P/E = <span class="hi3">D/E</span> / (<span class="hi2">r</span> − <span class="hi3">g</span>)`,
+    vars: [
+      { sym: 'P₀/E₁', def: 'Current price divided by next year\'s expected earnings — the forward P/E, most common version' },
+      { sym: 'D/E (payout ratio)', def: 'Proportion of earnings paid as dividends — higher payout → higher P/E, all else equal' },
+      { sym: 'r − g', def: 'Required return minus growth rate — the "spread" that determines value; narrower spread → higher P/E' },
+    ],
+    intuition: `Think of the P/E ratio as the price the market assigns to one dollar of a company's earnings. A P/E of 20 means investors are paying $20 for every $1 of annual earnings — they're willing to wait 20 years of earnings to recoup the price (ignoring growth). But growth changes everything. A company growing earnings at 15% per year deserves a much higher P/E than one growing at 2%, because future earnings will be much larger. The justified P/E formula makes this explicit: it comes directly from the Gordon Growth Model rearranged. Higher growth → higher justified P/E. Higher required return → lower justified P/E. It's a ratio that embeds the entire story of a company's prospects.`,
+    pullQuote: `"A high P/E is not automatically expensive and a low P/E is not automatically cheap. The question is always: is the P/E justified by the company's growth and risk characteristics?"`,
+    connected: ['ggm', 'fcfe-fcff', 'capm'],
+    inputs: [
+      { id: 'pe_price', label: 'Current Stock Price ($)', sym: 'P₀', type: 'range', min: 10, max: 500, step: 5, val: 120, unit: '$' },
+      { id: 'pe_eps', label: 'Expected EPS (E₁)', sym: 'E₁', type: 'range', min: 0.5, max: 20, step: 0.5, val: 5, unit: '$' },
+      { id: 'pe_payout', label: 'Dividend Payout Ratio', sym: 'D/E', type: 'range', min: 0, max: 100, step: 5, val: 40, unit: '%' },
+      { id: 'pe_r', label: 'Required Return r', sym: 'r', type: 'range', min: 2, max: 20, step: 0.5, val: 10, unit: '%' },
+      { id: 'pe_g', label: 'Growth Rate g', sym: 'g', type: 'range', min: 0, max: 15, step: 0.5, val: 5, unit: '%' },
+    ],
+    calc(v) {
+      const actual_pe = v.pe_price / v.pe_eps;
+      const justified_pe = (v.pe_payout / 100) / ((v.pe_r - v.pe_g) / 100);
+      const diff = actual_pe - justified_pe;
+      const breakdown = `Actual P/E = $${v.pe_price}/$${v.pe_eps} = <strong>${actual_pe.toFixed(2)}×</strong> | Justified P/E = ${v.pe_payout}%/(${v.pe_r}%−${v.pe_g}%) = <strong>${justified_pe.toFixed(2)}×</strong>`;
+      let insight = '';
+      if (v.pe_r <= v.pe_g) {
+        insight = `Warning: required return (${v.pe_r}%) must exceed growth rate (${v.pe_g}%) for the Gordon Growth Model to work — this is the same constraint as in the GGM. When g ≥ r, the model implies infinite value, which is economically impossible. In practice, no company can grow faster than the overall economy indefinitely.`;
+      } else if (diff > 2) {
+        insight = `Actual P/E of <strong>${actual_pe.toFixed(1)}×</strong> is <em>above</em> the justified P/E of <strong>${justified_pe.toFixed(1)}×</strong> by ${diff.toFixed(1)} turns. The stock appears <em>overvalued</em> relative to its fundamentals — you're paying more than the growth and payout profile warrants. Either the market expects higher growth than ${v.pe_g}%, or the stock is simply expensive.`;
+      } else if (diff < -2) {
+        insight = `Actual P/E of <strong>${actual_pe.toFixed(1)}×</strong> is <em>below</em> the justified P/E of <strong>${justified_pe.toFixed(1)}×</strong> by ${Math.abs(diff).toFixed(1)} turns. The stock appears <em>undervalued</em> — fundamentals warrant a higher multiple. Either the market is being overly pessimistic about growth, or there are risks not captured in these inputs.`;
+      } else {
+        insight = `Actual P/E of <strong>${actual_pe.toFixed(1)}×</strong> is close to the justified P/E of <strong>${justified_pe.toFixed(1)}×</strong> — the stock appears <em>fairly valued</em> given the assumed payout of ${v.pe_payout}%, required return of ${v.pe_r}%, and growth of ${v.pe_g}%. Small changes in growth assumptions (even ±1%) can dramatically shift the justified P/E — the denominator is very sensitive.`;
+      }
+      return { value: `Actual P/E = ${actual_pe.toFixed(2)}×`, label: `Justified P/E = ${isFinite(justified_pe) ? justified_pe.toFixed(2) : 'N/A'}×`, breakdown, insight };
+    },
+    chart(v) {
+      const gs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(g => g < v.pe_r);
+      return {
+        labels: gs.map(g => g + '%'),
+        datasets: [
+          { label: 'Justified P/E', data: gs.map(g => ((v.pe_payout/100)/((v.pe_r-g)/100)).toFixed(1)), borderColor: '#2a7a4f', backgroundColor: 'rgba(42,122,79,0.07)', tension: 0.3, pointRadius: 4 },
+          { label: 'Actual P/E', data: gs.map(() => (v.pe_price/v.pe_eps).toFixed(1)), borderColor: '#c8401a', borderDash: [5,5], pointRadius: 0, borderWidth: 1.5 },
+        ],
+        xLabel: 'Growth Rate g (%)', yLabel: 'P/E Multiple (×)',
+        caption: 'Justified P/E rises sharply as g approaches r — small growth changes have huge valuation implications'
+      };
+    },
+    traps: [
+      { label: 'Forward P/E vs trailing P/E', text: 'The <strong>justified P/E uses forward earnings (E₁)</strong> — next year\'s expected EPS. A trailing P/E uses last year\'s actual EPS. For valuation purposes, forward P/E is theoretically correct because you\'re pricing future cash flows. The exam often tests which version is appropriate.' },
+      { label: 'Negative earnings make P/E meaningless', text: 'If a company has negative earnings (a net loss), the P/E ratio is undefined or negative and conveys no useful information. In these cases, analysts switch to EV/EBITDA, P/S (price-to-sales), or P/B (price-to-book) instead.' },
+    ],
+    reality: `The S&P 500's P/E ratio has historically averaged around 15–17×. During the dot-com bubble it reached 40×. During recessions it sometimes falls below 10×. These deviations from the historical mean are watched obsessively by investors as signals of broad market over- or undervaluation — though timing markets based on P/E alone has proven notoriously difficult.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 25. P/B RATIO
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'pb-ratio',
+    subject: 'Equity Valuation',
+    name: 'P/B Ratio & Justified P/B',
+    tagline: 'Are you paying more than the accounting value of the assets you\'re buying?',
+    bigIdea: `The price-to-book ratio compares what the market says a company is worth (market cap) to what the accountants say the company is worth (book value of equity). It's a fundamental question: <strong>is the company creating value above and beyond the assets it holds?</strong> A P/B above 1 means the market believes the company earns returns on equity above its cost of equity. A P/B below 1 is a warning sign that the company may be destroying value.`,
+    formula: `P/B = <span class="hi">P₀</span> / <span class="hi2">BV</span> &nbsp;&nbsp; Justified P/B = (<span class="hi3">ROE</span> − g) / (r − g)`,
+    vars: [
+      { sym: 'BV', def: 'Book value per share — total equity on the balance sheet divided by shares outstanding' },
+      { sym: 'ROE', def: 'Return on equity — net income / book equity. The driver of whether P/B should be above or below 1.' },
+      { sym: 'ROE vs r', def: 'The key relationship: P/B > 1 when ROE > r (company earns above cost of equity). P/B < 1 when ROE < r.' },
+    ],
+    intuition: `Imagine you're buying a bakery. The oven, counters, and inventory are worth $100,000 on the books. But the bakery earns $20,000 per year in profit, and similar businesses trade at 10× earnings — making the bakery worth $200,000 in the market. The P/B is 2×: you're paying $2 for every $1 of accounting assets. Why? Because the bakery's reputation, recipes, and customer relationships generate returns above what the raw assets alone would earn. That excess return above the cost of capital is what justifies a P/B above 1.`,
+    pullQuote: `"The P/B ratio is ultimately a question about ROE. If a company can sustainably earn a return on equity above its cost of equity, it deserves to trade above book value — and the higher the excess return and growth, the higher the justified P/B."`,
+    connected: ['pe-ratio', 'dupont', 'ggm'],
+    inputs: [
+      { id: 'pb_price', label: 'Stock Price ($)', sym: 'P₀', type: 'range', min: 5, max: 500, step: 5, val: 80, unit: '$' },
+      { id: 'pb_bv', label: 'Book Value per Share ($)', sym: 'BV', type: 'range', min: 5, max: 200, step: 5, val: 40, unit: '$' },
+      { id: 'pb_roe', label: 'Return on Equity ROE', sym: 'ROE', type: 'range', min: 1, max: 30, step: 0.5, val: 15, unit: '%' },
+      { id: 'pb_r', label: 'Required Return r', sym: 'r', type: 'range', min: 2, max: 20, step: 0.5, val: 10, unit: '%' },
+      { id: 'pb_g', label: 'Growth Rate g', sym: 'g', type: 'range', min: 0, max: 15, step: 0.5, val: 5, unit: '%' },
+    ],
+    calc(v) {
+      const actual_pb = v.pb_price / v.pb_bv;
+      const justified_pb = (v.pb_roe - v.pb_g) / (v.pb_r - v.pb_g);
+      const diff = actual_pb - justified_pb;
+      const breakdown = `Actual P/B = $${v.pb_price}/$${v.pb_bv} = <strong>${actual_pb.toFixed(2)}×</strong> | Justified P/B = (${v.pb_roe}%−${v.pb_g}%)/(${v.pb_r}%−${v.pb_g}%) = <strong>${justified_pb.toFixed(2)}×</strong>`;
+      let insight = '';
+      if (v.pb_roe > v.pb_r) {
+        insight = `ROE of ${v.pb_roe}% exceeds required return of ${v.pb_r}% — this company <em>creates value</em> above its cost of equity. The justified P/B of <strong>${justified_pb.toFixed(2)}×</strong> is above 1, which is economically rational. ${diff > 0.5 ? `However, actual P/B of ${actual_pb.toFixed(2)}× is above justified, suggesting the stock may be overvalued.` : diff < -0.5 ? `Actual P/B of ${actual_pb.toFixed(2)}× is below justified — potentially undervalued.` : `Actual P/B of ${actual_pb.toFixed(2)}× is close to justified — fairly valued.`}`;
+      } else if (v.pb_roe < v.pb_r) {
+        insight = `ROE of ${v.pb_roe}% is <em>below</em> required return of ${v.pb_r}% — this company destroys value relative to its cost of equity. The justified P/B of <strong>${justified_pb.toFixed(2)}×</strong> is below 1. A rational investor should pay <em>less</em> than book value for a business that earns below its cost of capital. If the actual P/B of ${actual_pb.toFixed(2)}× is above this, the market may be overly optimistic about future ROE improvement.`;
+      } else {
+        insight = `ROE equals required return exactly — the company neither creates nor destroys value above its cost of equity. The justified P/B is exactly 1×: fair value equals book value. Any actual P/B deviation from 1 reflects the market pricing in expected future changes in ROE or growth.`;
+      }
+      return { value: `Actual P/B = ${actual_pb.toFixed(2)}×`, label: `Justified P/B = ${justified_pb.toFixed(2)}×`, breakdown, insight };
+    },
+    chart(v) {
+      const roes = Array.from({length: 13}, (_, i) => i * 2 + 4).filter(roe => roe !== v.pb_g);
+      return {
+        labels: roes.map(r => r + '%'),
+        datasets: [
+          { label: 'Justified P/B', data: roes.map(roe => Math.max(0, ((roe - v.pb_g)/(v.pb_r - v.pb_g))).toFixed(2)), borderColor: '#2d6a9f', backgroundColor: 'rgba(45,106,159,0.07)', tension: 0.3, pointRadius: 3 },
+          { label: 'P/B = 1 (book value)', data: roes.map(() => 1), borderColor: '#aaa', borderDash: [5,5], pointRadius: 0, borderWidth: 1.5 },
+        ],
+        xLabel: 'ROE (%)', yLabel: 'Justified P/B (×)',
+        caption: 'P/B crosses above 1 when ROE exceeds the required return — creating shareholder value beyond the asset base'
+      };
+    },
+    traps: [
+      { label: 'Book value can be misleading for intangible-heavy companies', text: 'Book value reflects historical cost accounting. For technology or pharmaceutical companies whose main assets are patents, brand, and human capital — none of which appear on the balance sheet — book value severely understates the true asset base. This is why tech companies routinely trade at P/B ratios of 10–30×.' },
+      { label: 'P/B below 1 is not automatically a bargain', text: 'A stock trading below book value (P/B < 1) can be a value trap. It might signal that the market correctly judges the company to be a persistent value destroyer — earning ROE below cost of equity year after year. Benjamin Graham\'s approach of buying below book value works only when the company\'s earning power is temporarily depressed, not permanently impaired.' },
+    ],
+    reality: `Warren Buffett used to track Berkshire Hathaway's P/B as a key indicator of whether the stock was cheap enough to buy back. Financial sector analysts rely on P/B more than any other sector because bank assets (loans, securities) are marked to market relatively frequently, making book value a more meaningful measure than for industrial companies.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 26. EV/EBITDA
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'ev-ebitda',
+    subject: 'Equity Valuation',
+    name: 'EV/EBITDA',
+    tagline: 'Comparing companies across different capital structures and tax rates',
+    bigIdea: `P/E is a useful multiple, but it has a fatal flaw for cross-company comparisons: it is affected by capital structure (how much debt a company uses) and tax rates (which vary by country and tax planning). <strong>EV/EBITDA solves both problems</strong> by using enterprise value (the price for the whole business, equity plus debt) and EBITDA (earnings before interest, taxes, depreciation and amortisation — stripping out all the financing and accounting noise).`,
+    formula: `EV = <span class="hi">Mkt Cap</span> + <span class="hi2">Debt</span> − <span class="hi3">Cash</span> &nbsp;&nbsp; EV/EBITDA = EV / EBITDA`,
+    vars: [
+      { sym: 'Enterprise Value (EV)', def: 'The total price of the business — market cap plus net debt. What an acquirer would actually pay to buy the whole company.' },
+      { sym: 'EBITDA', def: 'Earnings before interest, taxes, depreciation and amortisation — a proxy for operating cash flow, unaffected by leverage or accounting choices' },
+      { sym: 'Net Debt', def: 'Total debt minus cash and cash equivalents — cash is subtracted because an acquirer gets it back upon purchase' },
+    ],
+    intuition: `Suppose you want to compare two identical factories. Factory A is owned outright (no debt). Factory B is 50% debt-financed. Their P/E ratios will be very different — Factory B's interest expense reduces its net income, giving it a higher P/E. But an acquirer looking to buy either factory cares about the operating profit they'll generate, not how the previous owner financed them. EV/EBITDA solves this by measuring the price of the whole business (equity + debt − cash) relative to the operating earnings available to all capital providers, before any financing decisions are reflected. Now the two factories are directly comparable.`,
+    pullQuote: `"EV/EBITDA is the multiple of choice for M&A analysis because it answers the acquirer's real question: how many years of operating earnings am I paying for this business, regardless of how it's financed?"`,
+    connected: ['wacc', 'pe-ratio', 'fcfe-fcff'],
+    inputs: [
+      { id: 'ev_mktcap', label: 'Market Cap ($M)', sym: 'MktCap', type: 'number', min: 100, max: 100000, step: 100, val: 5000, unit: '$M' },
+      { id: 'ev_debt', label: 'Total Debt ($M)', sym: 'Debt', type: 'number', min: 0, max: 50000, step: 100, val: 2000, unit: '$M' },
+      { id: 'ev_cash', label: 'Cash & Equivalents ($M)', sym: 'Cash', type: 'number', min: 0, max: 10000, step: 100, val: 500, unit: '$M' },
+      { id: 'ev_ebitda', label: 'EBITDA ($M)', sym: 'EBITDA', type: 'number', min: 50, max: 20000, step: 50, val: 800, unit: '$M' },
+      { id: 'ev_sector_avg', label: 'Sector Average EV/EBITDA', sym: 'Avg', type: 'range', min: 4, max: 25, step: 0.5, val: 10, unit: '×' },
+    ],
+    calc(v) {
+      const ev = v.ev_mktcap + v.ev_debt - v.ev_cash;
+      const multiple = ev / v.ev_ebitda;
+      const diff = multiple - v.ev_sector_avg;
+      const breakdown = `EV = $${v.ev_mktcap.toLocaleString()}M + $${v.ev_debt.toLocaleString()}M − $${v.ev_cash.toLocaleString()}M = <strong>$${ev.toLocaleString()}M</strong> | EV/EBITDA = <strong>${multiple.toFixed(2)}×</strong>`;
+      let insight = '';
+      if (diff > 2) {
+        insight = `EV/EBITDA of <strong>${multiple.toFixed(1)}×</strong> is <em>${diff.toFixed(1)}× above</em> the sector average of ${v.ev_sector_avg}×. The company is trading at a premium — the market expects either above-average growth, a superior competitive position, or both. At this price, an acquirer is paying $${multiple.toFixed(1)} for every $1 of EBITDA. Whether this is justified depends on the company's growth trajectory relative to peers.`;
+      } else if (diff < -2) {
+        insight = `EV/EBITDA of <strong>${multiple.toFixed(1)}×</strong> is <em>${Math.abs(diff).toFixed(1)}× below</em> the sector average of ${v.ev_sector_avg}×. This discount could indicate undervaluation — a potential acquisition target — or it could reflect legitimate concerns about the company's competitive position, customer concentration, or declining industry dynamics. The discount needs investigation, not automatic celebration.`;
+      } else {
+        insight = `EV/EBITDA of <strong>${multiple.toFixed(1)}×</strong> is close to the sector average of ${v.ev_sector_avg}× — the company appears fairly valued relative to peers on this metric. At this multiple, the enterprise is valued at $${ev.toLocaleString()}M, implying the market pays ${multiple.toFixed(1)} years of EBITDA for the whole business including its debt obligations.`;
+      }
+      return { value: `EV/EBITDA = ${multiple.toFixed(2)}×`, label: `EV = $${ev.toLocaleString()}M`, breakdown, insight };
+    },
+    traps: [
+      { label: 'EBITDA is not free cash flow', text: 'EBITDA strips out depreciation — but depreciation reflects real asset wear that requires real capital expenditure to maintain. A company with high capex requirements will have EBITDA that significantly overstates its true cash-generating power. Always check the capex intensity of the business before relying on EV/EBITDA alone.' },
+      { label: 'Cash is subtracted because the acquirer receives it', text: 'When you buy a company, you pay the market cap to existing shareholders, you assume the debt, and you receive the cash on the balance sheet. Since you get the cash back, it reduces your net cost — hence EV = market cap + debt <em>minus</em> cash. Students often forget to subtract cash, which overstates EV.' },
+    ],
+    reality: `EV/EBITDA is the primary valuation metric used in leveraged buyout (LBO) analysis and M&A due diligence. Investment banks build "football fields" showing EV/EBITDA ranges for comparable companies to set bid price ranges in acquisitions. In private equity, target companies are typically acquired at 7–12× EBITDA and sold 5 years later — ideally at a higher multiple.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 27. INTEREST RATE PARITY
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'interest-rate-parity',
+    subject: 'Economics',
+    name: 'Interest Rate Parity',
+    tagline: 'Why you can\'t earn a free return by moving money between currencies',
+    bigIdea: `If you could deposit money in a high-interest-rate country and simultaneously lock in the exchange rate to convert back — all with no risk — you'd have a money machine. <strong>Interest Rate Parity says this can't exist.</strong> The forward exchange rate automatically adjusts so that the return from investing in either currency is identical, once the cost of hedging the currency risk is factored in. The higher-interest currency must be at a forward discount — it's expected to depreciate by exactly the interest rate differential.`,
+    formula: `F = <span class="hi">S₀</span> × (1 + <span class="hi2">r_d</span>) / (1 + <span class="hi3">r_f</span>)`,
+    vars: [
+      { sym: 'F', def: 'Forward exchange rate (domestic per foreign) — the contractually locked-in future exchange rate' },
+      { sym: 'S₀', def: 'Spot exchange rate today (domestic currency per unit of foreign currency)' },
+      { sym: 'r_d', def: 'Domestic risk-free interest rate for the period' },
+      { sym: 'r_f', def: 'Foreign risk-free interest rate for the period' },
+    ],
+    intuition: `Say the US rate is 5% and the UK rate is 3%. You have $1,000. You could invest in the US and get $1,050. Or you could convert to pounds, invest in the UK at 3%, and convert back. For these to give the same result, the pound must be at a forward premium against the dollar — $1 buys fewer pounds in the future than it does today. If it didn't, everyone would move money to the US (higher rate), creating unlimited risk-free profits. Currency markets immediately price this away through the forward rate. The country with the higher interest rate has a currency trading at a forward discount — the market implies its currency will weaken to offset the interest advantage.`,
+    pullQuote: `"Covered interest rate parity is one of the most robust relationships in all of finance — it holds almost perfectly in liquid currency markets because any deviation creates an immediate, risk-free arbitrage."`,
+    connected: ['forward-price', 'ppp', 'tvm'],
+    inputs: [
+      { id: 'irp_s', label: 'Spot Rate S₀ (USD/EUR)', sym: 'S₀', type: 'range', min: 0.8, max: 1.5, step: 0.01, val: 1.10, unit: '' },
+      { id: 'irp_rd', label: 'Domestic Rate (USD)', sym: 'r_d', type: 'range', min: 0, max: 10, step: 0.25, val: 5, unit: '%' },
+      { id: 'irp_rf', label: 'Foreign Rate (EUR)', sym: 'r_f', type: 'range', min: 0, max: 10, step: 0.25, val: 3, unit: '%' },
+      { id: 'irp_t', label: 'Time Horizon (years)', sym: 'T', type: 'range', min: 0.25, max: 3, step: 0.25, val: 1, unit: 'yr' },
+    ],
+    calc(v) {
+      const F = v.irp_s * Math.pow((1 + v.irp_rd/100) / (1 + v.irp_rf/100), v.irp_t);
+      const pct_change = ((F - v.irp_s) / v.irp_s * 100).toFixed(3);
+      const direction = F > v.irp_s ? 'at a premium' : 'at a discount';
+      const breakdown = `F = ${v.irp_s} × (1+${v.irp_rd}%)/(1+${v.irp_rf}%) = <strong>${F.toFixed(4)}</strong> | Change: <strong>${pct_change}%</strong>`;
+      let insight = '';
+      if (v.irp_rd > v.irp_rf) {
+        insight = `Domestic rate (${v.irp_rd}%) > Foreign rate (${v.irp_rf}%). The <em>foreign currency</em> (EUR) is trading <strong>${direction}</strong> — the forward rate of ${F.toFixed(4)} implies EUR will strengthen against USD by ${Math.abs(Number(pct_change)).toFixed(2)}% over ${v.irp_t} year(s). This exactly offsets the ${(v.irp_rd - v.irp_rf).toFixed(2)}% interest rate advantage of investing in USD. Net result: same return either way, no arbitrage possible.`;
+      } else if (v.irp_rd < v.irp_rf) {
+        insight = `Foreign rate (${v.irp_rf}%) > Domestic rate (${v.irp_rd}%). The <em>foreign currency</em> (EUR) is trading <strong>${direction}</strong> — the forward rate of ${F.toFixed(4)} implies EUR will weaken against USD by ${Math.abs(Number(pct_change)).toFixed(2)}% over ${v.irp_t} year(s). The apparent advantage of investing in EUR at ${v.irp_rf}% is fully offset by the implied depreciation of EUR. The higher-interest currency always depreciates in the forward market.`;
+      } else {
+        insight = `Domestic and foreign rates are equal — the forward rate equals the spot rate (${F.toFixed(4)}). With no interest rate differential, there is no incentive to move money between currencies and no implied exchange rate change. This is the baseline case where IRP holds trivially.`;
+      }
+      return { value: `Forward = ${F.toFixed(4)}`, label: `EUR ${pct_change > 0 ? 'premium' : 'discount'}: ${Math.abs(Number(pct_change)).toFixed(3)}%`, breakdown, insight };
+    },
+    chart(v) {
+      const rds = Array.from({length: 11}, (_, i) => i);
+      return {
+        labels: rds.map(r => r + '%'),
+        datasets: [
+          { label: 'Forward Rate (USD/EUR)', data: rds.map(rd => (v.irp_s * Math.pow((1+rd/100)/(1+v.irp_rf/100), v.irp_t)).toFixed(4)), borderColor: '#b8860b', backgroundColor: 'rgba(184,134,11,0.07)', tension: 0.3, pointRadius: 3 },
+          { label: 'Spot Rate', data: rds.map(() => v.irp_s.toFixed(4)), borderColor: '#aaa', borderDash: [5,5], pointRadius: 0, borderWidth: 1.5 },
+        ],
+        xLabel: 'Domestic Interest Rate (%)', yLabel: 'Forward Exchange Rate (USD/EUR)',
+        caption: 'As domestic rates rise, USD strengthens in the forward market — the forward EUR/USD rate rises (more USD per EUR)'
+      };
+    },
+    traps: [
+      { label: 'Covered vs Uncovered IRP', text: '<strong>Covered IRP</strong>: uses the actual forward rate locked in via a contract — holds almost perfectly in practice because it is pure arbitrage. <strong>Uncovered IRP</strong>: uses the <em>expected</em> future spot rate instead of a forward contract — holds on average in theory but frequently fails in practice because exchange rate expectations are noisy and risk premiums exist.' },
+      { label: 'High interest rate currency depreciates forward', text: 'This is counter-intuitive but critical: the currency with the <strong>higher interest rate</strong> is always at a <strong>forward discount</strong> — it is expected to weaken. Students often think "higher rate = stronger currency" but IRP says the opposite in forward markets. The interest advantage is exactly offset by the implied depreciation.' },
+    ],
+    reality: `Currency carry trades — borrowing in low-interest-rate currencies (like Japanese yen) and investing in high-interest-rate currencies (like Australian dollars) — exploit the fact that uncovered IRP often fails in the short run. These trades work for extended periods but periodically blow up violently when exchange rates suddenly adjust, wiping out years of carry gains in days.`
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // 28. PURCHASING POWER PARITY
+  // ══════════════════════════════════════════════════════════
+  {
+    id: 'ppp',
+    subject: 'Economics',
+    name: 'Purchasing Power Parity',
+    tagline: 'In the long run, exchange rates follow inflation differentials',
+    bigIdea: `If a Big Mac costs $5 in the US and £4 in the UK, the implied PPP exchange rate is $1.25/£. If the actual rate differs, there's a gap between where the exchange rate <em>is</em> and where it <em>should</em> be based on relative prices. <strong>Purchasing Power Parity</strong> says that over the long run, exchange rates adjust to equalise the purchasing power of currencies across countries. The engine behind this adjustment is inflation — countries with higher inflation see their currencies depreciate.`,
+    formula: `E(S₁/S₀) ≈ <span class="hi">π_d</span> − <span class="hi2">π_f</span> &nbsp;&nbsp; S₁ = S₀ × (1 + <span class="hi">π_d</span>) / (1 + <span class="hi2">π_f</span>)`,
+    vars: [
+      { sym: 'π_d', def: 'Domestic inflation rate — higher domestic inflation → currency depreciation' },
+      { sym: 'π_f', def: 'Foreign inflation rate — higher foreign inflation → that currency depreciates' },
+      { sym: 'S₁', def: 'Expected future spot rate — the exchange rate implied by PPP after one period' },
+      { sym: 'Absolute vs Relative PPP', def: 'Absolute PPP: price levels should be equal across countries. Relative PPP: exchange rate changes should match inflation differentials.' },
+    ],
+    intuition: `Here's the logic: if prices in India rise 8% per year while prices in the US rise only 2%, then over time a dollar buys relatively more in India than a rupee does — unless the rupee depreciates to restore balance. If it didn't depreciate, Indian goods would become progressively more expensive for US buyers, US exports to India would boom, and Indian exports to the US would collapse — trade flows would eventually force the exchange rate to adjust. PPP is the long-run anchor for exchange rates, even though in the short run, exchange rates are dominated by capital flows and interest rate differentials.`,
+    pullQuote: `"PPP is a terrible short-run predictor of exchange rates but a powerful long-run anchor. Currencies can deviate from PPP for years, but eventually trade and capital flows pull them back."`,
+    connected: ['interest-rate-parity', 'forward-price'],
+    inputs: [
+      { id: 'ppp_s0', label: 'Spot Rate S₀ (USD per unit)', sym: 'S₀', type: 'range', min: 0.5, max: 200, step: 0.5, val: 83, unit: '' },
+      { id: 'ppp_pi_d', label: 'Domestic Inflation π_d (USD)', sym: 'π_d', type: 'range', min: 0, max: 20, step: 0.25, val: 3, unit: '%' },
+      { id: 'ppp_pi_f', label: 'Foreign Inflation π_f', sym: 'π_f', type: 'range', min: 0, max: 20, step: 0.25, val: 6, unit: '%' },
+      { id: 'ppp_t', label: 'Years Ahead', sym: 'T', type: 'range', min: 1, max: 10, step: 1, val: 3, unit: 'yrs' },
+    ],
+    calc(v) {
+      const s1 = v.ppp_s0 * Math.pow((1 + v.ppp_pi_d/100) / (1 + v.ppp_pi_f/100), v.ppp_t);
+      const pct = ((s1 - v.ppp_s0) / v.ppp_s0 * 100).toFixed(2);
+      const annual = ((v.ppp_pi_d - v.ppp_pi_f)).toFixed(2);
+      const breakdown = `S${v.ppp_t} = ${v.ppp_s0} × (1+${v.ppp_pi_d}%)^${v.ppp_t}/(1+${v.ppp_pi_f}%)^${v.ppp_t} = <strong>${s1.toFixed(2)}</strong> | Change: <strong>${pct}%</strong>`;
+      let insight = '';
+      if (v.ppp_pi_d < v.ppp_pi_f) {
+        insight = `Domestic inflation (${v.ppp_pi_d}%) is <em>lower</em> than foreign inflation (${v.ppp_pi_f}%). PPP predicts the <em>foreign currency will depreciate</em> — S moves from ${v.ppp_s0} to <strong>${s1.toFixed(2)}</strong> over ${v.ppp_t} years, a change of ${pct}%. The domestic currency buys <em>more</em> of the foreign currency over time. A low-inflation country's currency strengthens in real terms — this is why Germany's and Japan's currencies tended to appreciate for decades.`;
+      } else if (v.ppp_pi_d > v.ppp_pi_f) {
+        insight = `Domestic inflation (${v.ppp_pi_d}%) is <em>higher</em> than foreign inflation (${v.ppp_pi_f}%). PPP predicts the <em>domestic currency will depreciate</em> — you'll need more domestic currency to buy one unit of foreign currency: ${v.ppp_s0} today → <strong>${s1.toFixed(2)}</strong> in ${v.ppp_t} years. By ${pct}% total, or roughly ${annual}% per year. High-inflation countries consistently experience currency weakness over the long run.`;
+      } else {
+        insight = `Inflation rates are equal — PPP predicts <em>no change</em> in the exchange rate over ${v.ppp_t} years. When inflation is identical across two countries, the relative price level is stable and there is no PPP-driven pressure for the exchange rate to move. In practice, short-run deviations still occur due to capital flows and interest rate differentials.`;
+      }
+      return { value: `S${v.ppp_t} = ${s1.toFixed(2)}`, label: `${pct}% change over ${v.ppp_t} yr(s)`, breakdown, insight };
+    },
+    chart(v) {
+      const years = Array.from({length: v.ppp_t + 1}, (_, i) => i);
+      return {
+        labels: years.map(y => 'Year ' + y),
+        datasets: [
+          { label: 'PPP-implied Spot Rate', data: years.map(y => (v.ppp_s0 * Math.pow((1+v.ppp_pi_d/100)/(1+v.ppp_pi_f/100), y)).toFixed(2)), borderColor: '#2a7a4f', backgroundColor: 'rgba(42,122,79,0.08)', tension: 0.3, pointRadius: 5 },
+          { label: 'Current Spot (unchanged)', data: years.map(() => v.ppp_s0.toFixed(2)), borderColor: '#aaa', borderDash: [5,5], pointRadius: 0, borderWidth: 1.5 },
+        ],
+        xLabel: 'Year', yLabel: 'Exchange Rate (domestic per foreign)',
+        caption: 'The divergence from the flat line shows how much the exchange rate must adjust to maintain purchasing power parity'
+      };
+    },
+    traps: [
+      { label: 'PPP holds in the long run, not the short run', text: 'In any given year, exchange rates can move dramatically in either direction regardless of inflation differentials — capital flows, sentiment, and interest rate changes dominate in the short run. The CFA exam tests whether you understand that PPP is a <strong>long-run equilibrium concept</strong>, not a short-run trading rule.' },
+      { label: 'Absolute vs Relative PPP distinction', text: '<strong>Absolute PPP</strong>: identical goods should cost the same across countries when prices are converted at the spot rate. This is the Big Mac Index idea — rarely holds due to non-tradable goods and transaction costs. <strong>Relative PPP</strong>: the <em>change</em> in exchange rates should match the <em>differential</em> in inflation rates. This is what the formula captures and what the CFA exam primarily tests.' },
+    ],
+    reality: `The Economist's Big Mac Index has published absolute PPP estimates since 1986 and is read seriously by economists and currency traders alike. It consistently shows that currencies of emerging market countries are undervalued relative to PPP — partly because labour costs (which affect prices) are lower there, a phenomenon called the Balassa-Samuelson effect.`
+  },
+
 ];
 
 // =====================================================================
 // SUBJECTS FOR NAV
 // =====================================================================
-const SUBJECTS = ['All', 'Portfolio Management', 'Fixed Income', 'Equity Valuation', 'Corporate Finance', 'Derivatives', 'Quantitative Methods', 'Financial Statement Analysis'];
+const SUBJECTS = ['All', 'Portfolio Management', 'Fixed Income', 'Equity Valuation', 'Corporate Finance', 'Derivatives', 'Quantitative Methods', 'Financial Statement Analysis', 'Economics'];
 
 let activeId = null;
 let activeSubject = 'All';
